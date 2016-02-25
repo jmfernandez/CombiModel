@@ -1,5 +1,8 @@
 /ant-libs
 /build
+/build-RMI
+/CombiModel-RMI.jar
+/dist
 /ivy-cache
 /jchemlib
 /lib

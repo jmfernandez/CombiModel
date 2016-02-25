@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project basedir="." default="build" name="CombiModel" xmlns:ivy="antlib:org.apache.ivy.ant">
+<project basedir="." default="dist" name="CombiModel" xmlns:ivy="antlib:org.apache.ivy.ant">
 	<description>CombiModel project</description>
 	
 	<dirname property="CombiModel.dir" file="${ant.file.CombiModel}" />
@@ -15,8 +15,13 @@
 	
 	<property name="CombiModel.src" location="${CombiModel.dir}/src" />
 	<property name="CombiModel.build" location="${CombiModel.dir}/build" />
+	<property name="CombiModel.RMI.build" location="${CombiModel.dir}/build-RMI" />
 	<property name="CombiModel.libs" location="${CombiModel.dir}/lib" />
 	<property name="CombiModel.dist" location="${CombiModel.dir}/dist" />
+	<property name="CombiModel.RMI.jar" location="${CombiModel.dir}/CombiModel-RMI.jar"/>
+	<property name="CombiModel.jar" location="${CombiModel.dist}/CombiModel.jar"/>
+	<property name="CombiModel.dist.libs.rel" value="CombiModel_libs"/>
+	<property name="CombiModel.dist.libs" location="${CombiModel.dist}/${CombiModel.dist.libs.rel}"/>
 	
 	<property name="CombiModel.JSBML.version" value="1.1" />
 	<property name="CombiModel.JSBML.jar.dir" location="${CombiModel.libs}"/>
@@ -78,7 +83,7 @@
 		<property name="skip.CombiModel.dependencies.download" value="true"/>
 	</target>
 	
-	<target name="compile" depends="CombiModel.dependencies.bootstrap">
+	<target name="compile" depends="CombiModel.dependencies.bootstrap" description="It compiles CombiModel">
 		<mkdir dir="${CombiModel.build}" />
 		
 		<path id="CombiModel.libs.path">
@@ -96,4 +101,65 @@
 		</javac>
 	</target>
 	
+	<target name="compile.RMI" depends="compile" description="It compiles CombiModel RMI server">
+		<mkdir dir="${CombiModel.RMI.build}" />
+		
+		<path id="CombiModel.libs.path">
+			<fileset dir="${CombiModel.libs}" includes="**.jar"/>
+		</path>
+		<rmic
+			includeantruntime="false"
+			classname="es.csic.cnb.rmi.server.RMIInterfazImpl"
+			base="${CombiModel.build}"
+			destdir="${CombiModel.RMI.build}"
+		>
+			<classpath refid="CombiModel.libs.path" />
+			<classpath refid="CombiModel.jchem.libs.path" />
+		</rmic>
+	</target>
+	
+	<target name="dist.RMI" depends="compile.RMI" description="It builds the CombiModel RMI server">
+		<manifestclasspath jarfile="${CombiModel.RMI.jar}" property="CombiModel.RMI.manifest.classpath">
+			<classpath refid="CombiModel.jchem.libs.path" />
+			<classpath refid="CombiModel.libs.path" />
+		</manifestclasspath>
+		<jar destfile="${CombiModel.RMI.jar}">
+			<fileset dir="${CombiModel.build}">
+				<include name="**.class"/>
+			</fileset>
+			<fileset dir="${CombiModel.src}">
+				<exclude name="**.java"/>
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="es.csic.cnb.rmi.server.RMIServer"/>
+				<attribute name="Class-Path" value="${CombiModel.RMI.manifest.classpath}"/>
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="dist" depends="compile" description="It builds the CombiModel distribution">
+		<mkdir dir="${CombiModel.dist.libs}" />
+		<copy todir="${CombiModel.dist.libs}" preservelastmodified="true">
+			<fileset dir="${CombiModel.libs}"/>
+			<fileset dir="${CombiModel.jchem.libs}"/>
+		</copy>
+		<path id="CombiModel.dist.libs.path">
+			<fileset dir="${CombiModel.dist.libs}" includes="**.jar"/>
+		</path>
+		<manifestclasspath jarfile="${CombiModel.jar}" property="CombiModel.manifest.classpath">
+			<classpath refid="CombiModel.dist.libs.path" />
+		</manifestclasspath>
+		<jar destfile="${CombiModel.jar}">
+			<fileset dir="${CombiModel.build}">
+				<include name="**.class"/>
+			</fileset>
+			<fileset dir="${CombiModel.src}">
+				<exclude name="**.java"/>
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="MainPka"/>
+				<attribute name="Class-Path" value="${CombiModel.manifest.classpath}"/>
+			</manifest>
+		</jar>
+	</target>
 </project>
