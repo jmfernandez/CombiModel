@@ -6,7 +6,7 @@
 	<include file="${included.basedir}/common-build.xml"/>
 	
 	<property name="ivy.install.version" value="2.4.0"/>
-	<property name="ivy.jar.dir" location="${gopher.ant-libs.basedir}"/>
+	<property name="ivy.jar.dir" location="${project.ant-libs.basedir}"/>
 	<property name="ivy.jar.file.rel" value="ivy-${ivy.install.version}.jar"/>
 	<property name="ivy.jar.file" location="${ivy.jar.dir}/${ivy.jar.file.rel}"/>
 	

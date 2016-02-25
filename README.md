@@ -9,3 +9,4 @@ CombiModel has been written in Java. Its software dependencies are:
 * [JSBML](http://sbml.org/Software/JSBML), version 1.1. The `-with-dependencies` version of the library can be downloaded from [Sourceforge JSBML project](https://sourceforge.net/projects/jsbml/files/jsbml/1.1/).
 * [MiGLayout](http://www.miglayout.com/), version 3.7.4. It is available as a Maven artifact ([com.miglayout:miglayout:3.7.4](http://mvnrepository.com/artifact/com.miglayout/miglayout/3.7.4)).
 * [SwingX](https://swingx.java.net/), version 1.6.4. It is available as a Maven artifact ([org.swinglabs.swingx:swingx-all:1.6.4](http://mvnrepository.com/artifact/org.swinglabs.swingx/swingx-all/1.6.4)).
+* [XStream](), version 1.4.3. It is available as a Maven artifact ([com.thoughtworks.xstream:xstream:1.4.3])

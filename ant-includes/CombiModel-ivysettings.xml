@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ivysettings>
+	<settings defaultResolver="chain"/>
+	<caches defaultCacheDir="${CombiModel.dir}/ivy-cache"/>
+	<resolvers>
+		<chain name="chain">
+			<ibiblio name="central" m2compatible="true"/>
+			<ibiblio name="ebi" m2compatible="true" root="http://www.ebi.ac.uk/~maven/m2repo/"/>
+			<ibiblio name="jspresso" m2compatible="true" root="http://repository.jspresso.org/maven2/"/>
+		</chain>
+	</resolvers>
+</ivysettings>
