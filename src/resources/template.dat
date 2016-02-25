@@ -1,0 +1,6 @@
+﻿<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<!-- Created by manual version 1 on 2012-07-09 15:12 with jsbml version 0.8-rc1. -->
+<sbml xmlns="http://www.sbml.org/sbml/level2" xmlns:html="http://www.w3.org/1999/xhtml" level="2" version="1">
+  <model name="manual">
+  </model>
+</sbml>

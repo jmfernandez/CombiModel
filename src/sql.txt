@@ -1,0 +1,92 @@
+CREATE TABLE COMPOUND(CHEMID INT AUTO_INCREMENT PRIMARY KEY, OFN VARCHAR(1024));
+CREATE TABLE COMPSYN(CHEMID INT NOT NULL, SYN VARCHAR_IGNORECASE(1024), FOREIGN KEY(CHEMID) REFERENCES COMPOUND(CHEMID) ON DELETE CASCADE);
+CREATE TABLE COMPINCHI(CHEMID INT NOT NULL, SYN VARCHAR(512), FOREIGN KEY(CHEMID) REFERENCES COMPOUND(CHEMID) ON DELETE CASCADE);
+CREATE TABLE COMPXREF(CHEMID INT NOT NULL, XREF VARCHAR(32), SOURCE VARCHAR(64), FOREIGN KEY(CHEMID) REFERENCES COMPOUND(CHEMID) ON DELETE CASCADE);
+
+CREATE INDEX IDXSYN ON COMPSYN(SYN);
+CREATE INDEX IDXINCHI ON COMPINCHI(SYN);
+CREATE INDEX IDXREF ON COMPXREF(XREF);
+
+
+DROP TABLE IF EXISTS COMPOUND;
+DROP TABLE IF EXISTS COMPSYN;
+DROP TABLE IF EXISTS COMPINCHI;
+DROP TABLE IF EXISTS COMPXREF;
+
+SELECT MAX(CHEMID) FROM COMPOUND;
+
+
+
+
+
+
+delete from compound where chemid = 834;
+
+select * from compsyn where chemid =
+(select distinct chemid from compxref where xref in ('cpd15768','cpd15767'));
+
+
+
+
+REGEXP::::::::::::::::
+select * from compsyn where syn regexp 'adenosine'
+
+BUSCAR REPETIDOS::::::::
+SELECT DISTINCT OFN,CHEMID FROM COMPOUND
+WHERE OFN IN
+(SELECT OFN FROM COMPOUND As CP
+GROUP BY OFN HAVING Count(*) > 1 )
+ORDER BY OFN
+
+
+SELECT DISTINCT XREF, CHEMID FROM COMPXREF
+WHERE XREF IN
+(SELECT XREF FROM COMPOUND As CP WHERE SOURCE = 'sbml'
+GROUP BY XREF HAVING Count(*) > 1 )
+ORDER BY XREF
+
+select chemid, val, source from
+(select chemid, ofn as val, '' as source from compound
+union
+select chemid, syn, '' as source from compsyn
+union
+select chemid, xref, source from compxref
+where source in ('fm','sbml','chebi','kegg'))
+ where chemid in (743,1791);
+
+SELECT * FROM
+(SELECT CHEMID, OFN FROM COMPOUND
+UNION
+SELECT CHEMID, SYN FROM COMPSYN
+UNION
+SELECT CHEMID, XREF FROM COMPXREF
+WHERE SOURCE IN ('fm','sbml','chebi','kegg'))
+ WHERE CHEMID IN (743,1791);
+
+
+ select * from compound where chemid not in (
+select chemid from compxref where source = 'chebi')
+
+
+select count(distinct chemid) from compxref where chemid in (
+select chemid from compxref
+where source = 'sbml'
+group by chemid
+having count(*) > 1);
+
+select count(*) from compxref where source = 'sbml' and xref not like 'cpd%';
+
+select chemid, ofn, '-' as source from compound
+union
+select chemid, fm, source from compfm
+union
+select chemid, xref, source from compxref;
+
+
+select c.chemid, c.ofn, s.syn, x.xref, x.source, c.freq, c.ex, c.mapping from compound c
+inner join compsyn s on c.chemid = s.chemid
+inner join compxref x on c.chemid = x.chemid;
+
+
+
+
