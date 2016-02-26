@@ -32,7 +32,7 @@
 	
 	<!-- Checking jchem library availability -->
 	<path id="CombiModel.jchem.libs.path">
-		<fileset dir="${CombiModel.jchem.libs}" includes="**.jar"/>
+		<fileset dir="${CombiModel.jchem.libs}" includes="**/*.jar"/>
 	</path>
 	<available classname="chemaxon.Config" classpathref="CombiModel.jchem.libs.path" property="CombiModel.jchem.libs.available" />
 	
@@ -56,8 +56,8 @@
 
 	<!-- CombiModel dependencies bootstrapping based on Ivy -->
 	<target name="CombiModel.dependencies.bootstrap" depends="CombiModel.JChem.check , CombiModel.JSBML.bootstrap , ivy-bootstrap.bootstrap-ivy" unless="skip.CombiModel.dependencies.download">
-		<ivy:configure file="${CombiModel.ant-includes}/CombiModel-ivysettings.xml"/>
-		<ivy:resolve>
+		<ivy:configure settingsId="CombiModel.ivy.instance" file="${CombiModel.ant-includes}/CombiModel-ivysettings.xml"/>
+		<ivy:resolve settingsRef="CombiModel.ivy.instance">
 			<!-- JChem dependency should be in place -->
 			<ivy:dependency org="uk.ac.ebi.chebi.webapps.chebiWS.client" name="chebiWS-client" rev="2.0" conf="*->*,!test,!sources,!javadoc" />
 			<ivy:dependency org="com.h2database" name="h2" rev="1.3.163" conf="*->*,!test,!sources,!javadoc"/>
@@ -75,9 +75,9 @@
 			<ivy:dependency org="stax" name="stax-api" rev="1.0.1" conf="*->*,!test,!sources,!javadoc" />
 		</ivy:resolve>
 		<!--
-		<ivy:dependencytree/>
+		<ivy:dependencytree settingsRef="CombiModel.ivy.instance" />
 		-->
-		<ivy:retrieve type="jar,bundle" pattern="${CombiModel.libs}/[artifact]-[revision].[ext]"/>
+		<ivy:retrieve settingsRef="CombiModel.ivy.instance" type="jar,bundle" pattern="${CombiModel.libs}/[artifact]-[revision].[ext]"/>
 		
 		<!-- We do this task only once -->
 		<property name="skip.CombiModel.dependencies.download" value="true"/>
@@ -87,7 +87,7 @@
 		<mkdir dir="${CombiModel.build}" />
 		
 		<path id="CombiModel.libs.path">
-			<fileset dir="${CombiModel.libs}" includes="**.jar"/>
+			<fileset dir="${CombiModel.libs}" includes="**/*.jar"/>
 		</path>
 		<javac
 			includeantruntime="false"
@@ -105,7 +105,7 @@
 		<mkdir dir="${CombiModel.RMI.build}" />
 		
 		<path id="CombiModel.libs.path">
-			<fileset dir="${CombiModel.libs}" includes="**.jar"/>
+			<fileset dir="${CombiModel.libs}" includes="**/*.jar"/>
 		</path>
 		<rmic
 			includeantruntime="false"
@@ -125,10 +125,10 @@
 		</manifestclasspath>
 		<jar destfile="${CombiModel.RMI.jar}">
 			<fileset dir="${CombiModel.build}">
-				<include name="**.class"/>
+				<include name="**/*.class"/>
 			</fileset>
 			<fileset dir="${CombiModel.src}">
-				<exclude name="**.java"/>
+				<exclude name="**/*.java"/>
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="es.csic.cnb.rmi.server.RMIServer"/>
@@ -144,17 +144,17 @@
 			<fileset dir="${CombiModel.jchem.libs}"/>
 		</copy>
 		<path id="CombiModel.dist.libs.path">
-			<fileset dir="${CombiModel.dist.libs}" includes="**.jar"/>
+			<fileset dir="${CombiModel.dist.libs}" includes="**/*.jar"/>
 		</path>
 		<manifestclasspath jarfile="${CombiModel.jar}" property="CombiModel.manifest.classpath">
 			<classpath refid="CombiModel.dist.libs.path" />
 		</manifestclasspath>
 		<jar destfile="${CombiModel.jar}">
 			<fileset dir="${CombiModel.build}">
-				<include name="**.class"/>
+				<include name="**/*.class"/>
 			</fileset>
 			<fileset dir="${CombiModel.src}">
-				<exclude name="**.java"/>
+				<exclude name="**/*.java"/>
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="MainPka"/>
