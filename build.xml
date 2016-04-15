@@ -12,6 +12,7 @@
 	<!-- Target compiling version is determined by source one -->
 	<!-- See http://docs.oracle.com/javase/8/docs/technotes/tools/windows/javac.html -->
 	<property name="build.compiler.source" value="1.7"/>
+	<property name="build.compiler.debug" value="true"/>
 	
 	<property name="CombiModel.src" location="${CombiModel.dir}/src" />
 	<property name="CombiModel.build" location="${CombiModel.dir}/build" />
@@ -93,12 +94,20 @@
 			includeantruntime="false"
 			includes="**"
 			source="${build.compiler.source}"
+			debug="${build.compiler.debug}"
 			srcdir="${CombiModel.src}"
 			destdir="${CombiModel.build}"
 		>
 			<classpath refid="CombiModel.libs.path" />
 			<classpath refid="CombiModel.jchem.libs.path" />
 		</javac>
+	</target>
+	
+	<target name="clean" description="It cleans up CombiModel compilation">
+		<delete dir="${CombiModel.build}" failonerror="false" />
+		<delete dir="${CombiModel.RMI.build}" failonerror="false" />
+		<delete dir="${CombiModel.dist}" failonerror="false" />
+		<delete file="${CombiModel.RMI.jar}" failonerror="false" />
 	</target>
 	
 	<target name="compile.RMI" depends="compile" description="It compiles CombiModel RMI server">
