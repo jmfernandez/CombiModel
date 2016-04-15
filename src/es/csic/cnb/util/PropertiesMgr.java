@@ -99,7 +99,21 @@ public enum PropertiesMgr {
     boolean isAuto = Boolean.parseBoolean(props.getProperty("automatic.host", "false"));
     if (isAuto) {
       try {
-        NetworkInterface iface = NetworkInterface.getByName("eth0");
+	Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+	NetworkInterface loInt = null;
+	NetworkInterface firstInt = null;
+	for (NetworkInterface netInt : Collections.list(nets)) {
+		if(netInt.isUp()) {
+			if(netInt.isLoopback() && loInt == null) {
+				loInt = netInt;
+			} else if(!netInt.isPointToPoint()) {
+				if(firstInt == null) {
+					firstInt = netInt;
+				}
+			}
+		}
+	}
+        NetworkInterface iface = firstInt!=null ? firstInt : loInt;
         Enumeration<InetAddress> raddrs = iface.getInetAddresses();
         for (InetAddress raddr : Collections.list(raddrs)) {
           if (!raddr.isLinkLocalAddress()) {
