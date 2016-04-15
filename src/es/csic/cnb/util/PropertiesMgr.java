@@ -96,36 +96,42 @@ public enum PropertiesMgr {
    * Solo se ejecuta si "automatic.host = true"
    */
   private static void automaticHost() {
-    boolean isAuto = Boolean.parseBoolean(props.getProperty("automatic.host", "false"));
-    if (isAuto) {
-      try {
-	Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
-	NetworkInterface loInt = null;
-	NetworkInterface firstInt = null;
-	for (NetworkInterface netInt : Collections.list(nets)) {
-		if(netInt.isUp()) {
-			if(netInt.isLoopback() && loInt == null) {
-				loInt = netInt;
-			} else if(!netInt.isPointToPoint()) {
-				if(firstInt == null) {
-					firstInt = netInt;
+	boolean isAuto = Boolean.parseBoolean(props.getProperty("automatic.host", "false"));
+	String ifaceName = props.getProperty("automatic.host.iface");
+	if (isAuto) {
+		try {
+			NetworkInterface iface = null;
+			if(ifaceName==null) {
+				Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+				NetworkInterface loInt = null;
+				NetworkInterface firstInt = null;
+				for (NetworkInterface netInt : Collections.list(nets)) {
+					if(netInt.isUp()) {
+						if(netInt.isLoopback() && loInt == null) {
+							loInt = netInt;
+						} else if(!netInt.isPointToPoint()) {
+							if(firstInt == null) {
+								firstInt = netInt;
+							}
+						}
+					}
+				}
+				iface = firstInt!=null ? firstInt : loInt;
+			} else {
+				iface = NetworkInterface.getByName(ifaceName);
+			}
+			Enumeration<InetAddress> raddrs = iface.getInetAddresses();
+			for (InetAddress raddr : Collections.list(raddrs)) {
+				if (!raddr.isLinkLocalAddress()) {
+					props.setProperty("rmi.host", raddr.getHostAddress());
+					props.setProperty("db.host", raddr.getHostAddress());
+					
+					LOGGER.log(Level.INFO, "Autohost: {0} - {1}", new Object[] {raddr.getHostName(), raddr.getHostAddress()});
 				}
 			}
+		} catch (SocketException e) {
+			LOGGER.log(Level.SEVERE, e.getMessage(), e);
 		}
 	}
-        NetworkInterface iface = firstInt!=null ? firstInt : loInt;
-        Enumeration<InetAddress> raddrs = iface.getInetAddresses();
-        for (InetAddress raddr : Collections.list(raddrs)) {
-          if (!raddr.isLinkLocalAddress()) {
-            props.setProperty("rmi.host", raddr.getHostAddress());
-            props.setProperty("db.host", raddr.getHostAddress());
-
-            LOGGER.log(Level.INFO, "Autohost: {0} - {1}", new Object[] {raddr.getHostName(), raddr.getHostAddress()});
-          }
-        }
-      } catch (SocketException e) {
-        LOGGER.log(Level.SEVERE, e.getMessage(), e);
-      }
-    }
   }
 }
