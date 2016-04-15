@@ -14,6 +14,8 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import es.csic.cnb.util.PropertiesParser;
+
 public enum PropertiesMgr {
   INSTANCE;
 
@@ -24,7 +26,7 @@ public enum PropertiesMgr {
   private static Properties props;
 
   static {
-    props = new Properties();
+    props = new PropertiesParser(System.getProperties());
     try {
       props.load(PropertiesMgr.class.getResourceAsStream("/configuration/" + PROPFILE));
 
