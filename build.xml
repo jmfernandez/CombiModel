@@ -59,6 +59,8 @@
 	<target name="CombiModel.dependencies.bootstrap" depends="CombiModel.JChem.check , CombiModel.JSBML.bootstrap , ivy-bootstrap.bootstrap-ivy" unless="skip.CombiModel.dependencies.download">
 		<ivy:configure settingsId="CombiModel.ivy.instance" file="${CombiModel.ant-includes}/CombiModel-ivysettings.xml"/>
 		<ivy:resolve settingsRef="CombiModel.ivy.instance">
+			<!-- This dependency is here to avoid collisions with ones from CombiModelWeb -->
+			<ivy:dependency org="javax.activation" name="activation" rev="1.1.1"/>
 			<!-- JChem dependency should be in place -->
 			<ivy:dependency org="uk.ac.ebi.chebi.webapps.chebiWS.client" name="chebiWS-client" rev="2.0" conf="*->*,!test,!sources,!javadoc" />
 			<ivy:dependency org="com.h2database" name="h2" rev="1.3.163" conf="*->*,!test,!sources,!javadoc"/>
@@ -77,6 +79,7 @@
 		</ivy:resolve>
 		<!--
 		<ivy:dependencytree settingsRef="CombiModel.ivy.instance" />
+		<fail/>
 		-->
 		<ivy:retrieve settingsRef="CombiModel.ivy.instance" type="jar,bundle" pattern="${CombiModel.libs}/[artifact]-[revision].[ext]"/>
 		
