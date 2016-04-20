@@ -5,17 +5,30 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.xml.stream.XMLStreamException;
+
 import org.sbml.jsbml.CVTerm;
 import org.sbml.jsbml.Reaction;
+import org.sbml.jsbml.SBase;
+import org.sbml.jsbml.SBMLDocument;
+import org.sbml.jsbml.SBMLReader;
 import org.sbml.jsbml.Species;
+import org.sbml.jsbml.util.StringTools;
+import org.sbml.jsbml.xml.XMLNode;
 
 import uk.ac.ebi.chebi.webapps.chebiWS.client.ChebiWebServiceClient;
 import es.csic.cnb.ws.ChebiException;
+
+import es.csic.cnb.util.XmlnsPrefixer;
+import java.io.File;
+import java.io.IOException;
+import javax.xml.transform.TransformerException;
 
 public class Util {
   private static final Logger LOGGER = Logger.getLogger(Util.class.getName());
@@ -487,4 +500,51 @@ public class Util {
 
     return compartmentAbb;
   }
+
+	// This code was needed due a bug in com.fasterxml.woodstox:woodstox-core:5.0.1
+	// which was fixed in com.fasterxml.woodstox:woodstox-core:5.0.2
+	public static void cleanXMLNode(XMLNode node) {
+		node.clearNamespaces();
+		int numChildren = node.getChildCount();
+		for(int iChild = 0; iChild < numChildren ; iChild++) {
+			XMLNode child = node.getChildAt(iChild);
+			cleanXMLNode(child);
+		}
+	}
+	
+	// This code was needed due a bug in com.fasterxml.woodstox:woodstox-core:5.0.1
+	// which was fixed in com.fasterxml.woodstox:woodstox-core:5.0.2
+	public static String getCleanNotesString(SBase sp)
+		throws XMLStreamException
+	{
+		// This is needed to avoid getting "Trying to redeclare prefix xml ..." exception
+		XMLNode notesNode = sp.getNotes().clone();
+		cleanXMLNode(notesNode);
+		
+		return notesNode.toXMLString();
+	}
+	
+	protected static XmlnsPrefixer fixer = null;
+	
+	// This code was needed due a bug in com.fasterxml.woodstox:woodstox-core:5.0.1
+	// which was fixed in com.fasterxml.woodstox:woodstox-core:5.0.2
+	public static SBMLDocument readFixedSBML(File file)
+		throws XMLStreamException, IOException
+	{
+		// Temp file which will contain the patched version of the document
+		File output = File.createTempFile("cmodelfixer",".xml");
+		try {
+			if(fixer == null) {
+				fixer = new XmlnsPrefixer();
+			}
+			// First, let's patch the input XML file
+			fixer.doPrefix(file,output);
+			
+			return SBMLReader.read(output);
+		} catch(TransformerException te) {
+			throw new IOException("Error while fixing SBML file",te);
+		} finally {
+			output.delete();
+		}
+	}
 }

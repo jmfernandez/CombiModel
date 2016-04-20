@@ -77,6 +77,16 @@
 	<target name="CombiModel.dependencies.bootstrap" depends="CombiModel.JChem.check , CombiModel.biojava3-ontology.bootstrap , ivy-bootstrap.bootstrap-ivy" unless="skip.CombiModel.dependencies.download">
 		<ivy:configure settingsId="CombiModel.ivy.instance" file="${CombiModel.ant-includes}/CombiModel-ivysettings.xml"/>
 		<ivy:resolve settingsRef="CombiModel.ivy.instance">
+			<!-- These dependencies homogenize CombiModel + JChemLib used libraries --> 
+			<!-- Declare explicitly json version -->
+			<ivy:dependency org="org.json" name="json" rev="20090211"/>
+			<!-- Declare explicitly mimepull version, which has a different organization name, synced with jchemlib -->
+			<ivy:dependency org="org.jvnet.mimepull" name="mimepull" rev="1.7"/>
+			<!-- Declare explicitly saaj-impl version, synced with jchemlib -->
+			<ivy:dependency org="com.sun.xml.messaging.saaj" name="saaj-impl" rev="1.3.19" />
+			
+			<ivy:dependency org="com.fasterxml.woodstox" name="woodstox-core" rev="5.0.+"/>
+
 			<!-- This dependency is here to avoid collisions with ones from CombiModelWeb -->
 			<ivy:dependency org="javax.activation" name="activation" rev="1.1.1"/>
 			<!-- This dependency is here to update log4j 1.2.x, used in JSBML, to its latest version -->
@@ -84,17 +94,23 @@
 			<!-- JSBML is included as a dependency, but biojava3-ontology:3.1.0 is not available in any M2 -->
 			<ivy:dependency org="org.sbml.jsbml" name="jsbml" rev="${CombiModel.JSBML.version}">
 				<ivy:exclude org="org.biojava" module="biojava3-ontology" />
+				<ivy:exclude org="org.json" module="json" />
 			</ivy:dependency>
 			<!-- -->
 			<!-- JChem dependency should be in place -->
-			<ivy:dependency org="uk.ac.ebi.chebi.webapps.chebiWS.client" name="chebiWS-client" rev="2.0" conf="*->*,!test,!sources,!javadoc" />
+			<ivy:dependency org="uk.ac.ebi.chebi.webapps.chebiWS.client" name="chebiWS-client" rev="2.0" conf="*->*,!test,!sources,!javadoc">
+				<!-- This one is removed, as newer versions are in a different organization -->
+				<ivy:exclude org="org.jvnet" module="mimepull" />
+			</ivy:dependency>
 			<ivy:dependency org="com.h2database" name="h2" rev="1.3.+" conf="*->*,!test,!sources,!javadoc"/>
 			<!-- JSBML dependency should be fetched from sourceforge mirror -->
 			<ivy:dependency org="com.miglayout" name="miglayout" rev="3.7.4" conf="*->*,!test,!sources,!javadoc">
 				<ivy:exclude org="net.java.desktop" module="substance"/>
 			</ivy:dependency>
 			<ivy:dependency org="org.swinglabs.swingx" name="swingx-all" rev="1.6.4" conf="*->*,!test,!sources,!javadoc"/>
-			<ivy:dependency org="com.thoughtworks.xstream" name="xstream" rev="1.4.3" conf="*->*,!test,!sources,!javadoc"/>
+			<ivy:dependency org="com.thoughtworks.xstream" name="xstream" rev="1.4.3" conf="*->*,!test,!sources,!javadoc">
+				<ivy:exclude org="org.json" module="json" />
+			</ivy:dependency>
 			
 			<ivy:exclude org="javax.xml.stream" module="stax-api"/>
 			
@@ -102,8 +118,8 @@
 			<ivy:dependency org="org.jvnet.substance" name="substance" rev="4.3" conf="*->*,!test,!sources,!javadoc" />
 			<ivy:dependency org="stax" name="stax-api" rev="1.0.1" conf="*->*,!test,!sources,!javadoc" />
 		</ivy:resolve>
-		<!--
 		<ivy:dependencytree settingsRef="CombiModel.ivy.instance" />
+		<!--
 		<fail/>
 		-->
 		<ivy:retrieve settingsRef="CombiModel.ivy.instance" type="jar,bundle" pattern="${CombiModel.libs}/[artifact]-[revision].[ext]"/>
@@ -178,7 +194,9 @@
 		<mkdir dir="${CombiModel.dist.libs}" />
 		<copy todir="${CombiModel.dist.libs}" preservelastmodified="true">
 			<fileset dir="${CombiModel.libs}"/>
-			<fileset dir="${CombiModel.jchem.libs}"/>
+			<fileset dir="${CombiModel.jchem.libs}">
+				<exclude name="**/json-org*.jar"/>
+			</fileset>
 		</copy>
 		<path id="CombiModel.dist.libs.path">
 			<fileset dir="${CombiModel.dist.libs}" includes="**/*.jar"/>
