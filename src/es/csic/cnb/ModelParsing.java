@@ -413,7 +413,7 @@ public class ModelParsing {
   public List<Species> writeManualCurationSBML() {
     final String filename = new SimpleDateFormat(DATEFORMAT_FOR_FILENAME).format(new Date());
     try {
-      SBMLWriter.write(docManTemplate, new File(Util.USERDIR_CURATIONFILES, filename + ".xml"), "manual", "1");
+      SBMLWriter.write(docManTemplate, new File(Util.USERDIR_CURATIONFILES, filename + ".xml"), "CombiModel", "1");
 
     } catch (SBMLException e) {
       LOGGER.log(Level.SEVERE, e.getMessage(), e);
