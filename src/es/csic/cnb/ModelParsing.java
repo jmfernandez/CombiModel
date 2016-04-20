@@ -116,6 +116,7 @@ public class ModelParsing {
       int level = model.getLevel();
       
       // TEMPLATE
+      /*
 	  String templateStr = String
 			.format("﻿<?xml version='1.0' encoding='UTF-8' standalone='no'?>%n"
 					//+ "<!-- Created by manual version 1 on 2012-07-09 15:12 with jsbml version 0.8-rc1. -->%n"
@@ -125,7 +126,10 @@ public class ModelParsing {
 					+ "</sbml>", level, version);
 			
 	  docManTemplate = reader.readSBMLFromString(templateStr);
-			
+	  */
+	
+	docManTemplate = new SBMLDocument(level,version);
+	Model docManTemplateModel = docManTemplate.createModel("manual");
 
       // If needed
       if (level == 2 && (version == 2 || version == 3 || version == 4)) {
@@ -168,10 +172,10 @@ public class ModelParsing {
       }
 
       for (Compartment cpt : model.getListOfCompartments()) {
-        if (!docManTemplate.getModel().containsCompartment(cpt.getId())) {
+        if (!docManTemplateModel.containsCompartment(cpt.getId())) {
           Compartment cptClone = cpt.clone();
           cptClone.unsetMetaId();
-          docManTemplate.getModel().addCompartment(cptClone);
+          docManTemplateModel.addCompartment(cptClone);
         }
       }
 
