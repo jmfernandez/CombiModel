@@ -532,7 +532,7 @@ public class ModelParsing {
         ListOf<SpeciesReference> rsrList = r.getListOfReactants();
         ListOf<SpeciesReference> psrList = r.getListOfProducts();
 	
-	KineticLaw klr = r.getKineticLaw();
+	KineticLaw klr = r.isSetKineticLaw() ? r.getKineticLaw() : r.createKineticLaw();
         if (rsrList.size() == 1 && psrList.size() == 1) {
           Species spP = psrList.getFirst().getSpeciesInstance();
 
@@ -565,7 +565,7 @@ public class ModelParsing {
         }
         // Reac citoplasmatica
         else {
-          if (klr!=null && klr.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue() == 1) {
+          if (klr!=null && klr.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT")!=null && klr.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue() == 1) {
             rccBiomassC = r;
           }
           rccBiomassCList.add(r);
@@ -658,7 +658,7 @@ public class ModelParsing {
           SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
           srp.setStoichiometry(1);
 
-		KineticLaw rcckl = rccBiomassE.getKineticLaw();
+		KineticLaw rcckl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
 		if(rcckl != null) {
 			rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
 			rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
@@ -707,7 +707,7 @@ public class ModelParsing {
           SpeciesReference srp = rccBiomassB.createProduct(cpdBiomassB);
           srp.setStoichiometry(1);
 
-		KineticLaw rcckl = rccBiomassB.getKineticLaw();
+		KineticLaw rcckl = rccBiomassB.isSetKineticLaw() ? rccBiomassB.getKineticLaw() : rccBiomassB.createKineticLaw();
 		if(rcckl!=null) {
 			rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
 			rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
@@ -754,7 +754,7 @@ public class ModelParsing {
         SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
         srp.setStoichiometry(1);
 
-	KineticLaw rcckl = rccBiomassE.getKineticLaw();
+	KineticLaw rcckl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
 	if(rcckl != null) {
 		rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
 		rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
@@ -792,7 +792,7 @@ public class ModelParsing {
       SpeciesReference srp = rccBiomassB.createProduct(cpdBiomassB);
       srp.setStoichiometry(1);
 
-	KineticLaw rcckl = rccBiomassB.getKineticLaw();
+	KineticLaw rcckl = rccBiomassB.isSetKineticLaw() ? rccBiomassB.getKineticLaw() : rccBiomassB.createKineticLaw();
 	if(rcckl != null) {
 		rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
 		rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
@@ -839,7 +839,7 @@ public class ModelParsing {
 	      SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
 	      srp.setStoichiometry(1);
 
-		KineticLaw rcckl = rccBiomassE.getKineticLaw();
+		KineticLaw rcckl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
 		if(rcckl != null) {
 			rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
 			rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);

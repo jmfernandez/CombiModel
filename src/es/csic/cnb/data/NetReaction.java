@@ -131,7 +131,7 @@ public class NetReaction {
 //      System.out.println("Modifiers: "+spr.getSpecies());
 //    }
 
-	KineticLaw kl = reaction.getKineticLaw();
+	KineticLaw kl = reaction.isSetKineticLaw() ? reaction.getKineticLaw() : reaction.createKineticLaw();
 	if(kl != null) {
 	    // Parametros de la reaccion
 	    for (LocalParameter lp : kl.getListOfLocalParameters()) {
