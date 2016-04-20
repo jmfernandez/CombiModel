@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import javax.xml.stream.XMLStreamException;
 
 import org.sbml.jsbml.Compartment;
+import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Reaction;
@@ -530,7 +531,8 @@ public class ModelParsing {
         // Obtener reactantes y productos
         ListOf<SpeciesReference> rsrList = r.getListOfReactants();
         ListOf<SpeciesReference> psrList = r.getListOfProducts();
-
+	
+	KineticLaw klr = r.getKineticLaw();
         if (rsrList.size() == 1 && psrList.size() == 1) {
           Species spP = psrList.getFirst().getSpeciesInstance();
 
@@ -538,17 +540,21 @@ public class ModelParsing {
           if (spP.getBoundaryCondition()) {
             rccBiomassB = r;
             existRccBiomassB = true;
-
-            r.getKineticLaw().getLocalParameter("LOWER_BOUND").setValue(0.0);
-            r.getKineticLaw().getLocalParameter("UPPER_BOUND").setValue(1000);
+		
+		if(klr!=null) {
+			klr.getLocalParameter("LOWER_BOUND").setValue(0.0);
+			klr.getLocalParameter("UPPER_BOUND").setValue(1000);
+		}
           }
           // Reac c -> e
           else if (Util.isExtracellular(spP.getCompartment())) {
             rccBiomassE = r;
             existRccBiomassE = true;
 
-            r.getKineticLaw().getLocalParameter("LOWER_BOUND").setValue(0.0);
-            r.getKineticLaw().getLocalParameter("UPPER_BOUND").setValue(1000);
+		if(klr!=null) {
+			klr.getLocalParameter("LOWER_BOUND").setValue(0.0);
+			klr.getLocalParameter("UPPER_BOUND").setValue(1000);
+		}
           }
           // Reac citoplasmatica
           else {
@@ -559,7 +565,7 @@ public class ModelParsing {
         }
         // Reac citoplasmatica
         else {
-          if (r.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue() == 1) {
+          if (klr!=null && klr.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue() == 1) {
             rccBiomassC = r;
           }
           rccBiomassCList.add(r);
@@ -631,7 +637,7 @@ public class ModelParsing {
           cpdBiomassE.setNotes(notes);
         }
 
-        if (!existRccBiomassE) {
+        if (!existRccBiomassE && rccBiomassC != null ) {
           rccBiomassE = rccBiomassC.clone();
           
           // Modificacion 01/2016 (el metaid de idb coincide -clon- y salta excepcion => unset metaid del clon)
@@ -652,16 +658,21 @@ public class ModelParsing {
           SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
           srp.setStoichiometry(1);
 
-          rccBiomassE.getKineticLaw().getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-          rccBiomassE.getKineticLaw().getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-          rccBiomassE.getKineticLaw().getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
-          // Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-          //rccBiomassE.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+		KineticLaw rcckl = rccBiomassE.getKineticLaw();
+		if(rcckl != null) {
+			rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
+			rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
+			rcckl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
+			//rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+		}
 
           docModel.addReaction(rccBiomassE);
 
           // Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
-          rccBiomassC.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+		if(rcckl != null) {
+			rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+		}
         }
       }
 
@@ -675,7 +686,7 @@ public class ModelParsing {
           cpdBiomassB.setNotes(notes);
         }
 
-        if (!existRccBiomassB) {
+        if (!existRccBiomassB && rccBiomassC != null) {
           rccBiomassB = rccBiomassC.clone();
           
           // Modificacion 01/2016 (el metaid de idb coincide -clon- y salta excepcion => unset metaid del clon)
@@ -696,10 +707,13 @@ public class ModelParsing {
           SpeciesReference srp = rccBiomassB.createProduct(cpdBiomassB);
           srp.setStoichiometry(1);
 
-          rccBiomassB.getKineticLaw().getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-          rccBiomassB.getKineticLaw().getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-          rccBiomassB.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
-          rccBiomassB.getKineticLaw().getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+		KineticLaw rcckl = rccBiomassB.getKineticLaw();
+		if(rcckl!=null) {
+			rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
+			rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
+			rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+			rcckl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+		}
 
           docModel.addReaction(rccBiomassB);
         }
@@ -719,7 +733,7 @@ public class ModelParsing {
         }
       }
       // Crear reac c - e
-      if (!existRccBiomassE) {
+      if (!existRccBiomassE && rccBiomassC != null) {
         rccBiomassE = rccBiomassC.clone();
         
         // Modificacion 01/2016 (el metaid de idb coincide -clon- y salta excepcion => unset metaid del clon)
@@ -740,16 +754,21 @@ public class ModelParsing {
         SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
         srp.setStoichiometry(1);
 
-        rccBiomassE.getKineticLaw().getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-        rccBiomassE.getKineticLaw().getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-        rccBiomassE.getKineticLaw().getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
-        // Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-        //rccBiomassE.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+	KineticLaw rcckl = rccBiomassE.getKineticLaw();
+	if(rcckl != null) {
+		rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
+		rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
+		rcckl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+		// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
+		//rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+	}
 
         docModel.addReaction(rccBiomassE);
 
         // Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
-        rccBiomassC.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+        if(rcckl != null) {
+		rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+	}
       }
 
       // Crear reac de biomasa e - b
@@ -773,10 +792,13 @@ public class ModelParsing {
       SpeciesReference srp = rccBiomassB.createProduct(cpdBiomassB);
       srp.setStoichiometry(1);
 
-      rccBiomassB.getKineticLaw().getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-      rccBiomassB.getKineticLaw().getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-      rccBiomassB.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
-      rccBiomassB.getKineticLaw().getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+	KineticLaw rcckl = rccBiomassB.getKineticLaw();
+	if(rcckl != null) {
+		rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
+		rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
+		rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+		rcckl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+	}
 
       docModel.addReaction(rccBiomassB);
     }
@@ -796,36 +818,43 @@ public class ModelParsing {
       }
 
       // Crear la reac c - e
-      rccBiomassE = rccBiomassC.clone();
-      
-      // Modificacion 01/2016 (el metaid de idb coincide -clon- y salta excepcion => unset metaid del clon)
-      rccBiomassE.unsetMetaId();
-      
-      rccBiomassE.setId("R_EX_Biomass_auto");
-      rccBiomassE.setName("EX_Biomass_auto");
+      if(rccBiomassC != null) {
+	      rccBiomassE = rccBiomassC.clone();
+	      
+	      // Modificacion 01/2016 (el metaid de idb coincide -clon- y salta excepcion => unset metaid del clon)
+	      rccBiomassE.unsetMetaId();
+	      
+	      rccBiomassE.setId("R_EX_Biomass_auto");
+	      rccBiomassE.setName("EX_Biomass_auto");
 
-      rccBiomassE.unsetNotes();
+	      rccBiomassE.unsetNotes();
 
-      rccBiomassE.unsetListOfReactants();
-      rccBiomassE.setListOfReactants(new ListOf<SpeciesReference>());
-      SpeciesReference srr = rccBiomassE.createReactant(cpdBiomassC);
-      srr.setStoichiometry(1);
+	      rccBiomassE.unsetListOfReactants();
+	      rccBiomassE.setListOfReactants(new ListOf<SpeciesReference>());
+	      SpeciesReference srr = rccBiomassE.createReactant(cpdBiomassC);
+	      srr.setStoichiometry(1);
 
-      rccBiomassE.unsetListOfProducts();
-      rccBiomassE.setListOfProducts(new ListOf<SpeciesReference>());
-      SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
-      srp.setStoichiometry(1);
+	      rccBiomassE.unsetListOfProducts();
+	      rccBiomassE.setListOfProducts(new ListOf<SpeciesReference>());
+	      SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
+	      srp.setStoichiometry(1);
 
-      rccBiomassE.getKineticLaw().getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-      rccBiomassE.getKineticLaw().getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-      rccBiomassE.getKineticLaw().getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
-      // Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-      //rccBiomassE.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+		KineticLaw rcckl = rccBiomassE.getKineticLaw();
+		if(rcckl != null) {
+			rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
+			rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
+			rcckl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
+			//rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+		}
 
-      docModel.addReaction(rccBiomassE);
+	      docModel.addReaction(rccBiomassE);
 
-      // Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
-      rccBiomassC.getKineticLaw().getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+		if(rcckl != null) {
+			// Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
+			rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+		}
+	}
 
       // Modificar la reac c - b
       rccBiomassB.removeReactant(cpdBiomassC.getId()); // eliminar c
@@ -1102,24 +1131,21 @@ public class ModelParsing {
         }
 
         // Crear reaccion c->e
-        Reaction r1 = rtemplate.clone();
-        
-        // Modificacion 01/2016 (el metaid de idb coincide -clon- y salta excepcion => unset metaid del clon)
-        r1.unsetMetaId();
+        Reaction r1 = Util.cloneReaction(rtemplate);
         
         r1.setId("rxn_new_" + cpId);
         r1.setName("rxn_new_" + cpId);
+        
         String crSp1 = cpId.replaceFirst("_\\w$", "_c");
         r1.getReactant(0).setSpecies(crSp1);
+        
         String cpSp1 = cpId.replaceFirst("_\\w$", "_e");
         r1.getProduct(0).setSpecies(cpSp1);
         docModel.addReaction(r1);
 
         // Crear reaccion e->b
-        Reaction r2 = rtemplate.clone();
-        
-        // Modificacion 01/2016 (el metaid de idb coincide -clon- y salta excepcion => unset metaid del clon)
-        r2.unsetMetaId();
+        Reaction r2 = Util.cloneReaction(rtemplate);
+        //Reaction r2 = rtemplate.clone();
         
         r2.setId("EX_new_" + cpId.replaceFirst("_e$", "_b"));
         r2.setName("EX_new_" + cpId.replaceFirst("_e$", "_b"));

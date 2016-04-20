@@ -241,7 +241,7 @@ public class DbSearchEngine {
       else if (bestMatch == 2) {
         // Creo lista con varios elementos para permitir correccion manual
         for (int chemId : matchesMap.get(bestMatch)) {
-          if (candidatesMinLv.get(chemId) <= Util.LV_MARGIN) {
+          if (candidatesMinLv.get(chemId) != null && candidatesMinLv.get(chemId) <= Util.LV_MARGIN) {
             chemIdList.add(chemId);
             st = Status.DUDE;
           }

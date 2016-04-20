@@ -19,6 +19,7 @@ import org.sbml.jsbml.SBase;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.SBMLReader;
 import org.sbml.jsbml.Species;
+import org.sbml.jsbml.SpeciesReference;
 import org.sbml.jsbml.util.StringTools;
 import org.sbml.jsbml.xml.XMLNode;
 
@@ -546,5 +547,21 @@ public class Util {
 		} finally {
 			output.delete();
 		}
+	}
+	
+	// It clones the reaction, giving it a new metaid, as well as its reactants and products
+	public static Reaction cloneReaction(Reaction r) {
+		Reaction rclone = r.clone();
+		rclone.unsetMetaId();
+		
+		for(SpeciesReference spr : rclone.getListOfProducts()) {
+			spr.unsetMetaId();
+		}
+		
+		for(SpeciesReference sre: rclone.getListOfReactants()) {
+			sre.unsetMetaId();
+		}
+		
+		return rclone;
 	}
 }

@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import javax.xml.stream.XMLStreamException;
 
 import org.sbml.jsbml.CVTerm;
+import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.LocalParameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SpeciesReference;
@@ -130,26 +131,29 @@ public class NetReaction {
 //      System.out.println("Modifiers: "+spr.getSpecies());
 //    }
 
-    // Parametros de la reaccion
-    for (LocalParameter lp : reaction.getKineticLaw().getListOfLocalParameters()) {
-      String key = lp.getId();
-      if (key.equalsIgnoreCase("LOWER_BOUND")) {
-        lb = lp.getValue();
-        lbUnits = lp.getUnits();
-      }
-      else if (key.equalsIgnoreCase("UPPER_BOUND")) {
-        ub = lp.getValue();
-        ubUnits = lp.getUnits();
-      }
-      else if (key.equalsIgnoreCase("OBJECTIVE_COEFFICIENT")) {
-        oc = lp.getValue();
-        ocUnits = lp.getUnits();
-      }
-      else if (key.equalsIgnoreCase("FLUX_VALUE")) {
-        fv = lp.getValue();
-        fvUnits = lp.getUnits();
-      }
-    }
+	KineticLaw kl = reaction.getKineticLaw();
+	if(kl != null) {
+	    // Parametros de la reaccion
+	    for (LocalParameter lp : kl.getListOfLocalParameters()) {
+	      String key = lp.getId();
+	      if (key.equalsIgnoreCase("LOWER_BOUND")) {
+		lb = lp.getValue();
+		lbUnits = lp.getUnits();
+	      }
+	      else if (key.equalsIgnoreCase("UPPER_BOUND")) {
+		ub = lp.getValue();
+		ubUnits = lp.getUnits();
+	      }
+	      else if (key.equalsIgnoreCase("OBJECTIVE_COEFFICIENT")) {
+		oc = lp.getValue();
+		ocUnits = lp.getUnits();
+	      }
+	      else if (key.equalsIgnoreCase("FLUX_VALUE")) {
+		fv = lp.getValue();
+		fvUnits = lp.getUnits();
+	      }
+	    }
+	}
   }
 
   /**
