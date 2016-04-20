@@ -29,6 +29,11 @@
 	<property name="CombiModel.JSBML.jar.file.rel" value="jsbml-${CombiModel.JSBML.version}-with-dependencies.jar"/>
 	<property name="CombiModel.JSBML.jar.file" location="${CombiModel.JSBML.jar.dir}/${CombiModel.JSBML.jar.file.rel}"/>
 	
+	<property name="CombiModel.biojava3-ontology.version" value="3.1.0" />
+	<property name="CombiModel.biojava3-ontology.jar.dir" location="${CombiModel.libs}"/>
+	<property name="CombiModel.biojava3-ontology.jar.file.rel" value="biojava3-ontology-${CombiModel.biojava3-ontology.version}.jar"/>
+	<property name="CombiModel.biojava3-ontology.jar.file" location="${CombiModel.biojava3-ontology.jar.dir}/${CombiModel.biojava3-ontology.jar.file.rel}"/>
+	
 	<property name="CombiModel.jchem.libs" location="${CombiModel.dir}/jchemlib" />
 	
 	<!-- Checking jchem library availability -->
@@ -55,15 +60,30 @@
 		<property name="skip.CombiModel.JSBML.download" value="true"/>
 	</target>
 
+	<target name="CombiModel.biojava3-ontology.bootstrap" unless="skip.CombiModel.biojava3-ontology.download">
+		<mkdir dir="${CombiModel.libs}" />
+		
+		<!-- Downloading Ivy from its web site, and validate the checksum-->
+		<get-and-checksum url="https://sourceforge.net/p/jsbml/code/HEAD/tree/tags/jsbml-${CombiModel.JSBML.version}/core/lib/${CombiModel.biojava3-ontology.jar.file.rel}?format=raw" dest="${CombiModel.biojava3-ontology.jar.file}" fetch-checksum="false" />
+		<!--
+			<get src="https://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar" dest="${ivy.jar.file}" usetimestamp="true"/>
+		-->
+		
+		<!-- We do this task only once -->
+		<property name="skip.CombiModel.biojava3-ontology.download" value="true"/>
+	</target>
+
 	<!-- CombiModel dependencies bootstrapping based on Ivy -->
-	<target name="CombiModel.dependencies.bootstrap" depends="CombiModel.JChem.check , CombiModel.JSBML.bootstrap , ivy-bootstrap.bootstrap-ivy" unless="skip.CombiModel.dependencies.download">
+	<target name="CombiModel.dependencies.bootstrap" depends="CombiModel.JChem.check , CombiModel.biojava3-ontology.bootstrap , ivy-bootstrap.bootstrap-ivy" unless="skip.CombiModel.dependencies.download">
 		<ivy:configure settingsId="CombiModel.ivy.instance" file="${CombiModel.ant-includes}/CombiModel-ivysettings.xml"/>
 		<ivy:resolve settingsRef="CombiModel.ivy.instance">
 			<!-- This dependency is here to avoid collisions with ones from CombiModelWeb -->
 			<ivy:dependency org="javax.activation" name="activation" rev="1.1.1"/>
-			<!-- JSBML could have been included as a dependency, but biojava3-ontology:3.1.0 is not available in any M2
-			<ivy:dependency org="org.sbml.jsbml" name="jsbml" rev="1.1" />
-			-->
+			<!-- JSBML is included as a dependency, but biojava3-ontology:3.1.0 is not available in any M2 -->
+			<ivy:dependency org="org.sbml.jsbml" name="jsbml" rev="${CombiModel.JSBML.version}">
+				<ivy:exclude org="org.biojava" module="biojava3-ontology" />
+			</ivy:dependency>
+			<!-- -->
 			<!-- JChem dependency should be in place -->
 			<ivy:dependency org="uk.ac.ebi.chebi.webapps.chebiWS.client" name="chebiWS-client" rev="2.0" conf="*->*,!test,!sources,!javadoc" />
 			<ivy:dependency org="com.h2database" name="h2" rev="1.3.163" conf="*->*,!test,!sources,!javadoc"/>
