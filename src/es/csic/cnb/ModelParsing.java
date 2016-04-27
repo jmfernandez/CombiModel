@@ -500,15 +500,16 @@ public class ModelParsing {
     for (Species sp : docModel.getListOfSpecies()) {
       // Llenar vectores de comp de intercambio a corregir
       if (matcher.reset(sp.getName()).find() || matcher.reset(sp.getId()).find()) {
+	Compartment comp = docModel.getCompartment(sp.getCompartment());
         if (sp.getBoundaryCondition()) {
           existCpdBiomassB = true;
           cpdBiomassB = sp;
         }
-        else if (Util.isCytosolic(sp.getCompartment())) {
+        else if (Util.isCytosolic(comp.getId()) || Util.isCytosolic(comp.getName())) {
           existCpdBiomassC = true;
           cpdBiomassC = sp;
         }
-        else if (Util.isExtracellular(sp.getCompartment())) {
+        else if (Util.isExtracellular(comp.getId()) || Util.isExtracellular(comp.getName())) {
           existCpdBiomassE = true;
           cpdBiomassE = sp;
         }
@@ -600,10 +601,10 @@ public class ModelParsing {
     String cytosol = "c";
     String extracell = "e";
     for (Compartment compartment : docModel.getListOfCompartments()) {
-      if (Util.isCytosolic(compartment.getId())) {
+      if (Util.isCytosolic(compartment.getId()) || Util.isCytosolic(compartment.getName())) {
         cytosol = compartment.getId();
       }
-      else if (Util.isExtracellular(compartment.getId())) {
+      else if (Util.isExtracellular(compartment.getId()) || Util.isExtracellular(compartment.getName())) {
         extracell = compartment.getId();
       }
     }
@@ -664,7 +665,9 @@ public class ModelParsing {
 			rccBEkl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
 			rccBEkl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
 			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-			//rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+			if(rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT")==null || rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue()==0.0) {
+				rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+			}
 		}
 
           docModel.addReaction(rccBiomassE);
@@ -761,7 +764,9 @@ public class ModelParsing {
 		rccBEkl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
 		rccBEkl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
 		// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-		//rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+		if(rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT")==null || rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue()==0.0) {
+			rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+		}
 	}
 
         docModel.addReaction(rccBiomassE);
@@ -847,7 +852,9 @@ public class ModelParsing {
 			rccBEkl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
 			rccBEkl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
 			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-			//rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+			if(rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT")==null || rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue()==0.0) {
+				rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+			}
 		}
 
 	      docModel.addReaction(rccBiomassE);
@@ -885,10 +892,10 @@ public class ModelParsing {
     String extracell = "e";
     String cytosolic = "c";
     for (Compartment compartment : docModel.getListOfCompartments()) {
-      if (Util.isExtracellular(compartment.getId())) {
+      if (Util.isExtracellular(compartment.getId()) || Util.isExtracellular(compartment.getName())) {
         extracell = compartment.getId();
       }
-      else if (Util.isCytosolic(compartment.getId())) {
+      else if (Util.isCytosolic(compartment.getId()) || Util.isCytosolic(compartment.getName())) {
     	cytosolic = compartment.getId();
       }
     }
