@@ -136,19 +136,19 @@ public class NetReaction {
 	    // Parametros de la reaccion
 	    for (LocalParameter lp : kl.getListOfLocalParameters()) {
 	      String key = lp.getId();
-	      if (key.equalsIgnoreCase("LOWER_BOUND")) {
+	      if (key.equalsIgnoreCase(Util.LOCAL__LOWER_BOUND_PARAM)) {
 		lb = lp.getValue();
 		lbUnits = lp.getUnits();
 	      }
-	      else if (key.equalsIgnoreCase("UPPER_BOUND")) {
+	      else if (key.equalsIgnoreCase(Util.LOCAL__UPPER_BOUND_PARAM)) {
 		ub = lp.getValue();
 		ubUnits = lp.getUnits();
 	      }
-	      else if (key.equalsIgnoreCase("OBJECTIVE_COEFFICIENT")) {
+	      else if (key.equalsIgnoreCase(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)) {
 		oc = lp.getValue();
 		ocUnits = lp.getUnits();
 	      }
-	      else if (key.equalsIgnoreCase("FLUX_VALUE")) {
+	      else if (key.equalsIgnoreCase(Util.LOCAL__FLUX_VALUE_PARAM)) {
 		fv = lp.getValue();
 		fvUnits = lp.getUnits();
 	      }

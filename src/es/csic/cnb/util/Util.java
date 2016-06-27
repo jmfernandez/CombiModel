@@ -54,6 +54,12 @@ public class Util {
   //public static final String DB = "jdbc:h2:tcp://localhost/";
   public static final String DB = "jdbc:h2:tcp://" + DB_HOST + ":" + DB_PORT + "/";
 
+	// This local parameters, in the case of FBC, are obtained with specialized methods
+	public static final String LOCAL__LOWER_BOUND_PARAM = "LOWER_BOUND";
+	public static final String LOCAL__UPPER_BOUND_PARAM = "UPPER_BOUND";
+	public static final String LOCAL__FLUX_VALUE_PARAM = "FLUX_VALUE";
+	public static final String LOCAL__OBJECTIVE_COEFFICIENT_PARAM = "OBJECTIVE_COEFFICIENT";
+
   public static final double DEFAULT_PH = 7.2;
 
   public static final String SOURCE_NONE  = "-";

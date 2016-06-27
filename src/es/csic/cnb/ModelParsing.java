@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import javax.xml.stream.XMLStreamException;
 
 import org.sbml.jsbml.Compartment;
+import org.sbml.jsbml.ext.fbc.FBCConstants;
 import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
@@ -60,6 +61,8 @@ public class ModelParsing {
   private SBMLReader reader;
   private SBMLWriter wr;
   private SBMLDocument doc;
+  
+  private boolean isFBC = false;
 
   private SBMLDocument docManTemplate;
 
@@ -109,6 +112,10 @@ public class ModelParsing {
 
     try {
       doc = reader.readSBML(file);
+      
+	// NOTE jmfernandez: De esta manera sabremos si podemos usar los atajos de FBC o no
+	isFBC = doc.isPackageEnabled(FBCConstants.shortLabel);
+      
       doc.setSBMLDocumentAttributes(modelAtts);
 
       // Parses an SBML file containing the network description
@@ -130,6 +137,11 @@ public class ModelParsing {
 	  */
 	
 	docManTemplate = new SBMLDocument(level,version);
+	// Keeping it as similar as we can, related to FBC
+	if(isFBC) {
+		docManTemplate.enablePackage(FBCConstants.shortLabel);
+	}
+	
 	Model docManTemplateModel = docManTemplate.createModel("manual");
 
       // If needed
@@ -543,8 +555,8 @@ public class ModelParsing {
             existRccBiomassB = true;
 		
 		if(klr!=null) {
-			klr.getLocalParameter("LOWER_BOUND").setValue(0.0);
-			klr.getLocalParameter("UPPER_BOUND").setValue(1000);
+			klr.getLocalParameter(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
+			klr.getLocalParameter(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
 		}
           }
           // Reac c -> e
@@ -553,8 +565,8 @@ public class ModelParsing {
             existRccBiomassE = true;
 
 		if(klr!=null) {
-			klr.getLocalParameter("LOWER_BOUND").setValue(0.0);
-			klr.getLocalParameter("UPPER_BOUND").setValue(1000);
+			klr.getLocalParameter(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
+			klr.getLocalParameter(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
 		}
           }
           // Reac citoplasmatica
@@ -566,7 +578,7 @@ public class ModelParsing {
         }
         // Reac citoplasmatica
         else {
-          if (klr!=null && klr.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT")!=null && klr.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue() == 1) {
+          if (klr!=null && klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)!=null && klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue() == 1) {
             rccBiomassC = r;
           }
           rccBiomassCList.add(r);
@@ -661,12 +673,12 @@ public class ModelParsing {
 
 		KineticLaw rccBEkl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
 		if(rccBEkl != null) {
-			rccBEkl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-			rccBEkl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-			rccBEkl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
 			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-			if(rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT")==null || rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue()==0.0) {
-				rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+			if(rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)==null || rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue()==0.0) {
+				rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(1); // A veces es cero
 			}
 		}
 
@@ -675,7 +687,7 @@ public class ModelParsing {
           // Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
 		KineticLaw rccBCkl = rccBiomassC.isSetKineticLaw() ? rccBiomassC.getKineticLaw() : rccBiomassC.createKineticLaw();
 		if(rccBCkl != null) {
-			rccBCkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+			rccBCkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
 		}
         }
       }
@@ -713,10 +725,10 @@ public class ModelParsing {
 
 		KineticLaw rcckl = rccBiomassB.isSetKineticLaw() ? rccBiomassB.getKineticLaw() : rccBiomassB.createKineticLaw();
 		if(rcckl!=null) {
-			rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-			rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-			rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
-			rcckl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+			rcckl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
+			rcckl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+			rcckl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
+			rcckl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
 		}
 
           docModel.addReaction(rccBiomassB);
@@ -760,12 +772,12 @@ public class ModelParsing {
 
 	KineticLaw rccBEkl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
 	if(rccBEkl != null) {
-		rccBEkl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-		rccBEkl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-		rccBEkl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+		rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
+		rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+		rccBEkl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
 		// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-		if(rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT")==null || rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue()==0.0) {
-			rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+		if(rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)==null || rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue()==0.0) {
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(1); // A veces es cero
 		}
 	}
 
@@ -774,7 +786,7 @@ public class ModelParsing {
         // Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
         KineticLaw rccBCkl = rccBiomassC.isSetKineticLaw() ? rccBiomassC.getKineticLaw() : rccBiomassC.createKineticLaw();
         if(rccBCkl != null) {
-		rccBCkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+		rccBCkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
 	}
       }
 
@@ -801,10 +813,10 @@ public class ModelParsing {
 
 	KineticLaw rcckl = rccBiomassB.isSetKineticLaw() ? rccBiomassB.getKineticLaw() : rccBiomassB.createKineticLaw();
 	if(rcckl != null) {
-		rcckl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-		rcckl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-		rcckl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
-		rcckl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+		rcckl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
+		rcckl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+		rcckl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
+		rcckl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
 	}
 
       docModel.addReaction(rccBiomassB);
@@ -848,12 +860,12 @@ public class ModelParsing {
 
 		KineticLaw rccBEkl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
 		if(rccBEkl != null) {
-			rccBEkl.getListOfLocalParameters().get("LOWER_BOUND").setValue(0.0);
-			rccBEkl.getListOfLocalParameters().get("UPPER_BOUND").setValue(1000);
-			rccBEkl.getListOfLocalParameters().get("FLUX_VALUE").setValue(0.0);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
 			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
-			if(rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT")==null || rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").getValue()==0.0) {
-				rccBEkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(1); // A veces es cero
+			if(rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)==null || rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue()==0.0) {
+				rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(1); // A veces es cero
 			}
 		}
 
@@ -862,7 +874,7 @@ public class ModelParsing {
 		KineticLaw rccBCkl = rccBiomassC.isSetKineticLaw() ? rccBiomassC.getKineticLaw() : rccBiomassC.createKineticLaw();
 		if(rccBCkl != null) {
 			// Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
-			rccBCkl.getListOfLocalParameters().get("OBJECTIVE_COEFFICIENT").setValue(0.0);
+			rccBCkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
 		}
 	}
 
