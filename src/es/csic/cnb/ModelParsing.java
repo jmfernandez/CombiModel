@@ -20,9 +20,11 @@ import javax.xml.stream.XMLStreamException;
 
 import org.sbml.jsbml.Compartment;
 import org.sbml.jsbml.ext.fbc.FBCConstants;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.SBMLError;
@@ -536,7 +538,7 @@ public class ModelParsing {
     Reaction rccBiomassC = null;
     Reaction rccBiomassE = null;
     Reaction rccBiomassB = null;
-
+    
     // Identificar las reac de biomasa
     for (Reaction r : docModel.getListOfReactions()) {
       // Llenar vectores de comp de intercambio a corregir
@@ -544,48 +546,61 @@ public class ModelParsing {
         // Obtener reactantes y productos
         ListOf<SpeciesReference> rsrList = r.getListOfReactants();
         ListOf<SpeciesReference> psrList = r.getListOfProducts();
+        
+        
+	KineticLaw klr = null;
+	FBCReactionPlugin fbcReaction = null;
+	if(isFBC) {
+	// Doing it nicely
+		fbcReaction = (FBCReactionPlugin)r.getPlugin(FBCConstants.shortLabel);
+	} else {
+	// Traditional way before FBC
+		klr = Util.getKineticLaw(r);
+	}
 	
-	KineticLaw klr = r.isSetKineticLaw() ? r.getKineticLaw() : r.createKineticLaw();
-        if (rsrList.size() == 1 && psrList.size() == 1) {
-          Species spP = psrList.getFirst().getSpeciesInstance();
-
-          // Reac e -> b o c -> b
-          if (spP.getBoundaryCondition()) {
-            rccBiomassB = r;
-            existRccBiomassB = true;
+	if (rsrList.size() == 1 && psrList.size() == 1) {
+		Species spP = psrList.getFirst().getSpeciesInstance();
 		
-		if(klr!=null) {
-			klr.getLocalParameter(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
-			klr.getLocalParameter(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+		// Reac e -> b o c -> b
+		if (spP.getBoundaryCondition()) {
+			rccBiomassB = r;
+			existRccBiomassB = true;
+			
+			if(klr!=null) {
+				klr.getLocalParameter(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+				klr.getLocalParameter(Util.LOCAL__UPPER_BOUND_PARAM).setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
+			} else {
+				fbcReaction.setLowerFluxBound(Util.getDefaultLowerBoundParameter(docModel));
+				fbcReaction.setUpperFluxBound(Util.getDefaultUpperBoundParameter(docModel));
+			}
+		} else if (Util.isExtracellular(spP.getCompartment())) {
+		// Reac c -> e
+			rccBiomassE = r;
+			existRccBiomassE = true;
+			
+			if(klr!=null) {
+				klr.getLocalParameter(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+				klr.getLocalParameter(Util.LOCAL__UPPER_BOUND_PARAM).setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
+			} else {
+				fbcReaction.setLowerFluxBound(Util.getDefaultLowerBoundParameter(docModel));
+				fbcReaction.setUpperFluxBound(Util.getDefaultUpperBoundParameter(docModel));
+			}
+		} else {
+		// Reac citoplasmatica
+			rccBiomassC = r;
+			rccBiomassCList.add(r);//
+			existRccBiomassC = true;
 		}
-          }
-          // Reac c -> e
-          else if (Util.isExtracellular(spP.getCompartment())) {
-            rccBiomassE = r;
-            existRccBiomassE = true;
-
-		if(klr!=null) {
-			klr.getLocalParameter(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
-			klr.getLocalParameter(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+	} else {
+	// Reac citoplasmatica
+		if (klr!=null && klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)!=null && klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue() == 1) {
+			rccBiomassC = r;
 		}
-          }
-          // Reac citoplasmatica
-          else {
-            rccBiomassC = r;
-            rccBiomassCList.add(r);//
-            existRccBiomassC = true;
-          }
-        }
-        // Reac citoplasmatica
-        else {
-          if (klr!=null && klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)!=null && klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue() == 1) {
-            rccBiomassC = r;
-          }
-          rccBiomassCList.add(r);
-
-          //rccBiomassC = r;
-          existRccBiomassC = true;
-        }
+		rccBiomassCList.add(r);
+		
+		//rccBiomassC = r;
+		existRccBiomassC = true;
+	}
       }
     }
 
@@ -671,21 +686,33 @@ public class ModelParsing {
           SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
           srp.setStoichiometry(1);
 
-		KineticLaw rccBEkl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
+		KineticLaw rccBEkl = null;
+		FBCReactionPlugin fbcRccBE = null;
+		if(isFBC) {
+		// Doing it nicely
+			fbcRccBE = (FBCReactionPlugin)rccBiomassE.getPlugin(FBCConstants.shortLabel);
+		} else {
+		// Traditional way before FBC
+			rccBEkl = Util.getKineticLaw(rccBiomassE);
+		}
+		
 		if(rccBEkl != null) {
-			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
-			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
 			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
 			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
 			if(rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)==null || rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue()==0.0) {
 				rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(1); // A veces es cero
 			}
+		} else {
+			fbcRccBE.setLowerFluxBound(Util.getDefaultLowerBoundParameter(docModel));
+			fbcRccBE.setUpperFluxBound(Util.getDefaultUpperBoundParameter(docModel));
 		}
 
           docModel.addReaction(rccBiomassE);
 
           // Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
-		KineticLaw rccBCkl = rccBiomassC.isSetKineticLaw() ? rccBiomassC.getKineticLaw() : rccBiomassC.createKineticLaw();
+		KineticLaw rccBCkl = Util.getKineticLaw(rccBiomassC);
 		if(rccBCkl != null) {
 			rccBCkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
 		}
@@ -723,12 +750,24 @@ public class ModelParsing {
           SpeciesReference srp = rccBiomassB.createProduct(cpdBiomassB);
           srp.setStoichiometry(1);
 
-		KineticLaw rcckl = rccBiomassB.isSetKineticLaw() ? rccBiomassB.getKineticLaw() : rccBiomassB.createKineticLaw();
+		KineticLaw rcckl = null;
+		FBCReactionPlugin fbcRccBB = null;
+		if(isFBC) {
+		// Doing it nicely
+			fbcRccBB = (FBCReactionPlugin)rccBiomassB.getPlugin(FBCConstants.shortLabel);
+		} else {
+		// Traditional way before FBC
+			rcckl = Util.getKineticLaw(rccBiomassB);
+		}
+		
 		if(rcckl!=null) {
-			rcckl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
-			rcckl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+			rcckl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+			rcckl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
 			rcckl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
 			rcckl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
+		} else {
+			fbcRccBB.setLowerFluxBound(Util.getDefaultLowerBoundParameter(docModel));
+			fbcRccBB.setUpperFluxBound(Util.getDefaultUpperBoundParameter(docModel));
 		}
 
           docModel.addReaction(rccBiomassB);
@@ -770,21 +809,33 @@ public class ModelParsing {
         SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
         srp.setStoichiometry(1);
 
-	KineticLaw rccBEkl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
+	KineticLaw rccBEkl = null;
+	FBCReactionPlugin fbcRccBE = null;
+	if(isFBC) {
+	// Doing it nicely
+		fbcRccBE = (FBCReactionPlugin)rccBiomassE.getPlugin(FBCConstants.shortLabel);
+	} else {
+	// Traditional way before FBC
+		rccBEkl = Util.getKineticLaw(rccBiomassE);
+	}
+	
 	if(rccBEkl != null) {
-		rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
-		rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+		rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+		rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
 		rccBEkl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
 		// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
 		if(rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)==null || rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue()==0.0) {
 			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(1); // A veces es cero
 		}
+	} else {
+		fbcRccBE.setLowerFluxBound(Util.getDefaultLowerBoundParameter(docModel));
+		fbcRccBE.setUpperFluxBound(Util.getDefaultUpperBoundParameter(docModel));
 	}
 
         docModel.addReaction(rccBiomassE);
 
         // Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
-        KineticLaw rccBCkl = rccBiomassC.isSetKineticLaw() ? rccBiomassC.getKineticLaw() : rccBiomassC.createKineticLaw();
+        KineticLaw rccBCkl = Util.getKineticLaw(rccBiomassC);
         if(rccBCkl != null) {
 		rccBCkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
 	}
@@ -811,12 +862,24 @@ public class ModelParsing {
       SpeciesReference srp = rccBiomassB.createProduct(cpdBiomassB);
       srp.setStoichiometry(1);
 
-	KineticLaw rcckl = rccBiomassB.isSetKineticLaw() ? rccBiomassB.getKineticLaw() : rccBiomassB.createKineticLaw();
+	KineticLaw rcckl = null;
+	FBCReactionPlugin fbcRccBB = null;
+	if(isFBC) {
+	// Doing it nicely
+		fbcRccBB = (FBCReactionPlugin)rccBiomassB.getPlugin(FBCConstants.shortLabel);
+	} else {
+	// Traditional way before FBC
+		rcckl = Util.getKineticLaw(rccBiomassB);
+	}
+	
 	if(rcckl != null) {
-		rcckl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
-		rcckl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+		rcckl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+		rcckl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
 		rcckl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);
 		rcckl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
+	} else {
+		fbcRccBB.setLowerFluxBound(Util.getDefaultLowerBoundParameter(docModel));
+		fbcRccBB.setUpperFluxBound(Util.getDefaultUpperBoundParameter(docModel));
 	}
 
       docModel.addReaction(rccBiomassB);
@@ -858,20 +921,32 @@ public class ModelParsing {
 	      SpeciesReference srp = rccBiomassE.createProduct(cpdBiomassE);
 	      srp.setStoichiometry(1);
 
-		KineticLaw rccBEkl = rccBiomassE.isSetKineticLaw() ? rccBiomassE.getKineticLaw() : rccBiomassE.createKineticLaw();
+		KineticLaw rccBEkl = null;
+		FBCReactionPlugin fbcRccBE = null;
+		if(isFBC) {
+		// Doing it nicely
+			fbcRccBE = (FBCReactionPlugin)rccBiomassE.getPlugin(FBCConstants.shortLabel);
+		} else {
+		// Traditional way before FBC
+			rccBEkl = Util.getKineticLaw(rccBiomassE);
+		}
+		
 		if(rccBEkl != null) {
-			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(0.0);
-			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(1000);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
 			rccBEkl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
 			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
 			if(rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)==null || rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue()==0.0) {
 				rccBEkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(1); // A veces es cero
 			}
+		} else {
+			fbcRccBE.setLowerFluxBound(Util.getDefaultLowerBoundParameter(docModel));
+			fbcRccBE.setUpperFluxBound(Util.getDefaultUpperBoundParameter(docModel));
 		}
 
 	      docModel.addReaction(rccBiomassE);
 
-		KineticLaw rccBCkl = rccBiomassC.isSetKineticLaw() ? rccBiomassC.getKineticLaw() : rccBiomassC.createKineticLaw();
+		KineticLaw rccBCkl = Util.getKineticLaw(rccBiomassC);
 		if(rccBCkl != null) {
 			// Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
 			rccBCkl.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(0.0);

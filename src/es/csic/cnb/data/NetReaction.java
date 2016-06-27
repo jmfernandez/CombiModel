@@ -9,8 +9,11 @@ import java.util.regex.Pattern;
 import javax.xml.stream.XMLStreamException;
 
 import org.sbml.jsbml.CVTerm;
+import org.sbml.jsbml.ext.fbc.FBCConstants;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
 import org.sbml.jsbml.KineticLaw;
 import org.sbml.jsbml.LocalParameter;
+import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SpeciesReference;
 
@@ -54,7 +57,7 @@ public class NetReaction {
 //  private Reaction reaction;
 
 
-  public NetReaction(Reaction reaction) throws SQLException, XMLStreamException {
+  public NetReaction(Reaction reaction,boolean isFBC) throws SQLException, XMLStreamException {
     db = DbManager.INSTANCE.getCompoundDbMgr();
 
     this.sbmlId = reaction.getId();
@@ -131,28 +134,47 @@ public class NetReaction {
 //      System.out.println("Modifiers: "+spr.getSpecies());
 //    }
 
-	KineticLaw kl = reaction.isSetKineticLaw() ? reaction.getKineticLaw() : reaction.createKineticLaw();
-	if(kl != null) {
-	    // Parametros de la reaccion
-	    for (LocalParameter lp : kl.getListOfLocalParameters()) {
-	      String key = lp.getId();
-	      if (key.equalsIgnoreCase(Util.LOCAL__LOWER_BOUND_PARAM)) {
-		lb = lp.getValue();
-		lbUnits = lp.getUnits();
-	      }
-	      else if (key.equalsIgnoreCase(Util.LOCAL__UPPER_BOUND_PARAM)) {
-		ub = lp.getValue();
-		ubUnits = lp.getUnits();
-	      }
-	      else if (key.equalsIgnoreCase(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)) {
-		oc = lp.getValue();
-		ocUnits = lp.getUnits();
-	      }
-	      else if (key.equalsIgnoreCase(Util.LOCAL__FLUX_VALUE_PARAM)) {
-		fv = lp.getValue();
-		fvUnits = lp.getUnits();
-	      }
-	    }
+	if(isFBC) {
+		// Using FBC extension, as it is available
+		FBCReactionPlugin fbcReaction = (FBCReactionPlugin)reaction.getPlugin(FBCConstants.shortLabel);
+		
+		if(fbcReaction.isSetLowerFluxBound()) {
+			Parameter lbParam = fbcReaction.getLowerFluxBoundInstance();
+			lb = lbParam.getValue();
+			lbUnits = lbParam.getUnits();
+		}
+		
+		if(fbcReaction.isSetUpperFluxBound()) {
+			Parameter ubParam = fbcReaction.getUpperFluxBoundInstance();
+			ub = ubParam.getValue();
+			ubUnits = ubParam.getUnits();
+		}
+		
+		// No kinetic law is needed in these cases
+	} else {
+		KineticLaw kl = reaction.isSetKineticLaw() ? reaction.getKineticLaw() : reaction.createKineticLaw();
+		if(kl != null) {
+		    // Parametros de la reaccion
+		    for (LocalParameter lp : kl.getListOfLocalParameters()) {
+		      String key = lp.getId();
+		      if (key.equalsIgnoreCase(Util.LOCAL__LOWER_BOUND_PARAM)) {
+			lb = lp.getValue();
+			lbUnits = lp.getUnits();
+		      }
+		      else if (key.equalsIgnoreCase(Util.LOCAL__UPPER_BOUND_PARAM)) {
+			ub = lp.getValue();
+			ubUnits = lp.getUnits();
+		      }
+		      else if (key.equalsIgnoreCase(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)) {
+			oc = lp.getValue();
+			ocUnits = lp.getUnits();
+		      }
+		      else if (key.equalsIgnoreCase(Util.LOCAL__FLUX_VALUE_PARAM)) {
+			fv = lp.getValue();
+			fvUnits = lp.getUnits();
+		      }
+		    }
+		}
 	}
   }
 

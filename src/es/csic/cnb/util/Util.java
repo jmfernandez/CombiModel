@@ -14,6 +14,9 @@ import java.util.regex.Pattern;
 import javax.xml.stream.XMLStreamException;
 
 import org.sbml.jsbml.CVTerm;
+import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.Model;
+import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
 import org.sbml.jsbml.SBase;
 import org.sbml.jsbml.SBMLDocument;
@@ -59,7 +62,16 @@ public class Util {
 	public static final String LOCAL__UPPER_BOUND_PARAM = "UPPER_BOUND";
 	public static final String LOCAL__FLUX_VALUE_PARAM = "FLUX_VALUE";
 	public static final String LOCAL__OBJECTIVE_COEFFICIENT_PARAM = "OBJECTIVE_COEFFICIENT";
+	
+	public static final String DEFAULT_LOWER_BOUND_PARAM_ID = "cmodel_lb";
+	public static final String DEFAULT_UPPER_BOUND_PARAM_ID = "cmodel_ub";
+	
+	public static final String DEFAULT_LOWER_BOUND_PARAM_NAME = "Default lower flux bound (set by cmodel)";
+	public static final String DEFAULT_UPPER_BOUND_PARAM_NAME = "Default upper flux bound (set by cmodel)";
 
+	public static final double DEFAULT_LOWER_BOUND_VALUE = 0.0;
+	public static final double DEFAULT_UPPER_BOUND_VALUE = 1000;
+	
   public static final double DEFAULT_PH = 7.2;
 
   public static final String SOURCE_NONE  = "-";
@@ -569,5 +581,51 @@ public class Util {
 		}
 		
 		return rclone;
+	}
+	
+	// As these global parameters are added only once, we need to
+	// control their lifecycle in the model
+	public static Parameter getDefaultLowerBoundParameter(Model docModel) {
+		Parameter lbParam = null;
+		if(docModel.containsParameter(Util.DEFAULT_LOWER_BOUND_PARAM_ID)) {
+			lbParam = docModel.getParameter(Util.DEFAULT_LOWER_BOUND_PARAM_ID);
+		} else {
+			lbParam = docModel.createParameter(Util.DEFAULT_LOWER_BOUND_PARAM_ID);
+			lbParam.setName(Util.DEFAULT_LOWER_BOUND_PARAM_NAME);
+			lbParam.setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+			lbParam.setConstant(true);
+			lbParam.setUnits(docModel.getExtentUnits());
+			docModel.addParameter(lbParam);
+		}
+		
+		return lbParam;
+	}
+	
+	public static Parameter getDefaultUpperBoundParameter(Model docModel) {
+		Parameter ubParam = null;
+		if(docModel.containsParameter(Util.DEFAULT_UPPER_BOUND_PARAM_ID)) {
+			ubParam = docModel.getParameter(Util.DEFAULT_UPPER_BOUND_PARAM_ID);
+		} else {
+			ubParam = docModel.createParameter(Util.DEFAULT_UPPER_BOUND_PARAM_ID);
+			ubParam.setName(Util.DEFAULT_UPPER_BOUND_PARAM_NAME);
+			ubParam.setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
+			ubParam.setConstant(true);
+			ubParam.setUnits(docModel.getExtentUnits());
+			docModel.addParameter(ubParam);
+		}
+		
+		return ubParam;
+	}
+	
+	public static KineticLaw getKineticLaw(Reaction r) {
+		KineticLaw klr = null;
+		if(r.isSetKineticLaw()) {
+			klr = r.getKineticLaw();
+		} else {
+			klr = r.createKineticLaw();
+			r.setKineticLaw(klr);
+		}
+		
+		return klr;
 	}
 }
