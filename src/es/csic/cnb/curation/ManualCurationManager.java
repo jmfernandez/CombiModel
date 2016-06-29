@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 import javax.xml.stream.XMLStreamException;
 
 import org.sbml.jsbml.Compartment;
+import org.sbml.jsbml.ext.fbc.FBCConstants;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.SBMLDocument;
 import org.sbml.jsbml.SBMLException;
@@ -110,6 +111,8 @@ public class ManualCurationManager {
     curAuto = 0;
     curMan.clear();
 
+	boolean isFBC = false;
+
     try {
       if (compCurationFile.exists()) {
         docManTemplate = reader.readSBML(compCurationFile);
@@ -118,6 +121,8 @@ public class ManualCurationManager {
         docManTemplate = reader.readSBMLFromStream(
               this.getClass().getResourceAsStream("/resources/template.dat"));
       }
+      
+	isFBC = docManTemplate.isPackageEnabled(FBCConstants.shortLabel);
     } catch (XMLStreamException e) {
       e.printStackTrace();
     } catch (IOException e) {
@@ -190,7 +195,7 @@ public class ManualCurationManager {
         progressData.setInf("Checking " + sp.getId());
         progressData.setTotal(cont);
         progressData.setPercentaje(cont*100/num);
-        NetCompound comp = new NetCompound(sp);
+        NetCompound comp = new NetCompound(sp,isFBC);
         comp.setDorsal(dorsal);
         if (!mapComp.containsKey(comp.getCleanSbmlId())) {
           mapComp.put(comp.getCleanSbmlId(), comp);
@@ -475,7 +480,7 @@ public class ManualCurationManager {
       // Busqueda en WS con resultados pendientes de curacion manual
       List<WSCompound> wsList = wsSearch.getCandidateList();
       for (WSCompound wsCandidate : wsList) {
-        NetCompound tmpComp = new NetCompound(comp.getSpecies());
+        NetCompound tmpComp = new NetCompound(comp.getSpecies(),comp.isFBC());
         tmpComp.update(wsCandidate);
 
         // Buscar en la BD con el nuevo comp

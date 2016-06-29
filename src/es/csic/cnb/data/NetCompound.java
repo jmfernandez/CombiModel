@@ -30,7 +30,6 @@ public class NetCompound {
   private Matcher mtKegg = Pattern.compile("kegg\\.compound:(C\\d+)$").matcher("");
 
   private Matcher mtCharge = Pattern.compile("CHARGE:\\s?(\\d+)").matcher("");
-  private Matcher mtFormula = Pattern.compile("FORMULA:\\s?([A-Za-z0-9]+)").matcher("");
   private Matcher mtNameFormula = Pattern.compile("^(.+)_((?:[A-Z][a-z]?\\d*)+)$").matcher("");
   private Matcher mtSyn = Pattern.compile("SYN:\\s?(.+)<\\/p>").matcher("");
 
@@ -75,9 +74,12 @@ public class NetCompound {
   private boolean manualCuration = false;
 
   private int dorsal;
+  
+  private boolean isFBC;
 
   @SuppressWarnings("deprecation")
-  public NetCompound(Species sp) {
+  public NetCompound(Species sp, boolean isFBC) {
+	this.isFBC = isFBC;
     this.smilesList = new HashSet<String>();
     this.synList    = new HashSet<String>();
     this.fmList     = new HashMap<String,Set<Fm>>();
@@ -124,13 +126,9 @@ public class NetCompound {
     boolean changeName = false;
 
     // Recuperar la formula que aparece en las notas del SBML
-    try {
-		mtFormula.reset(sp.getNotesString());
-	} catch (XMLStreamException e1) {
-		e1.printStackTrace();
-	}
-    if (mtFormula.find()) {
-      this.sbmlFormula = mtFormula.group(1);
+    String sbmlFormula = Util.getFormulaFromSpecies(sp,isFBC);
+    if (sbmlFormula!=null) {
+      this.sbmlFormula = sbmlFormula;
 
       // Limpiar nombre
       this.sbmlName = cleanName(sp.getName()).trim();
@@ -817,6 +815,10 @@ public class NetCompound {
   public int getDorsal() {
     return dorsal;
   }
+
+	public boolean isFBC() {
+		return isFBC;
+	}
 
   /**
    * @param dorsal the dorsal to set

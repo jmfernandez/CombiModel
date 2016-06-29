@@ -14,7 +14,15 @@ import java.util.regex.Pattern;
 import javax.xml.stream.XMLStreamException;
 
 import org.sbml.jsbml.CVTerm;
+import org.sbml.jsbml.ext.fbc.FBCConstants;
+import org.sbml.jsbml.ext.fbc.FBCModelPlugin;
+import org.sbml.jsbml.ext.fbc.FBCReactionPlugin;
+import org.sbml.jsbml.ext.fbc.FBCSpeciesPlugin;
+import org.sbml.jsbml.ext.fbc.FluxObjective;
+import org.sbml.jsbml.ext.fbc.ListOfObjectives;
+import org.sbml.jsbml.ext.fbc.Objective;
 import org.sbml.jsbml.KineticLaw;
+import org.sbml.jsbml.ListOf;
 import org.sbml.jsbml.Model;
 import org.sbml.jsbml.Parameter;
 import org.sbml.jsbml.Reaction;
@@ -64,13 +72,18 @@ public class Util {
 	public static final String LOCAL__OBJECTIVE_COEFFICIENT_PARAM = "OBJECTIVE_COEFFICIENT";
 	
 	public static final String DEFAULT_LOWER_BOUND_PARAM_ID = "cmodel_lb";
+	public static final String IMPOSSIBLE_LOWER_BOUND_PARAM_ID = "cmodel_imp_lb";
 	public static final String DEFAULT_UPPER_BOUND_PARAM_ID = "cmodel_ub";
 	
 	public static final String DEFAULT_LOWER_BOUND_PARAM_NAME = "Default lower flux bound (set by cmodel)";
+	public static final String IMPOSSIBLE_LOWER_BOUND_PARAM_NAME = "Impossible lower flux bound (set by cmodel)";
 	public static final String DEFAULT_UPPER_BOUND_PARAM_NAME = "Default upper flux bound (set by cmodel)";
 
 	public static final double DEFAULT_LOWER_BOUND_VALUE = 0.0;
 	public static final double DEFAULT_UPPER_BOUND_VALUE = 1000;
+	public static final double IMPOSSIBLE_LOWER_BOUND_VALUE = -DEFAULT_UPPER_BOUND_VALUE;
+	public static final double OBJECTIVE_COEFFICIENT_VALUE = 1.0;
+	public static final double DISABLED_OBJECTIVE_COEFFICIENT_VALUE = 0.0;
 	
   public static final double DEFAULT_PH = 7.2;
 
@@ -617,6 +630,23 @@ public class Util {
 		return ubParam;
 	}
 	
+	public static Parameter getImpossibleLowerBoundParameter(Model docModel) {
+		Parameter lbParam = null;
+		if(docModel.containsParameter(Util.IMPOSSIBLE_LOWER_BOUND_PARAM_ID)) {
+			lbParam = docModel.getParameter(Util.IMPOSSIBLE_LOWER_BOUND_PARAM_ID);
+		} else {
+			lbParam = docModel.createParameter(Util.IMPOSSIBLE_LOWER_BOUND_PARAM_ID);
+			lbParam.setName(Util.IMPOSSIBLE_LOWER_BOUND_PARAM_NAME);
+			lbParam.setValue(Util.IMPOSSIBLE_LOWER_BOUND_VALUE);
+			lbParam.setConstant(true);
+			lbParam.setUnits(docModel.getExtentUnits());
+			docModel.addParameter(lbParam);
+		}
+		
+		return lbParam;
+	}
+	
+	// If the kinetic law does not exist, it is created
 	public static KineticLaw getKineticLaw(Reaction r) {
 		KineticLaw klr = null;
 		if(r.isSetKineticLaw()) {
@@ -627,5 +657,201 @@ public class Util {
 		}
 		
 		return klr;
+	}
+	
+	public static double getLowerBoundValue(Reaction r, boolean isFBC) {
+		double lowerBoundValue;
+		if(isFBC) {
+			Model model = r.getModel();
+			FBCReactionPlugin fbcRP = (FBCReactionPlugin)r.getPlugin(FBCConstants.shortLabel);
+			
+			Parameter lowerBoundInstance = fbcRP.getLowerFluxBoundInstance();
+			lowerBoundValue = lowerBoundInstance.getValue();
+		} else {
+			KineticLaw kl = Util.getKineticLaw(r);
+			lowerBoundValue = kl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).getValue();
+		}
+		
+		return lowerBoundValue;
+	}
+	
+	public static void setDefaultLowerBoundValue(Reaction r, boolean isFBC) {
+		if(isFBC) {
+			Model model = r.getModel();
+			FBCReactionPlugin fbcRP = (FBCReactionPlugin)r.getPlugin(FBCConstants.shortLabel);
+			
+			fbcRP.setLowerFluxBound(Util.getDefaultLowerBoundParameter(model));
+		} else {
+			KineticLaw kl = Util.getKineticLaw(r);
+			kl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+		}
+	}
+	
+	public static void setImpossibleLowerBoundValue(Reaction r, boolean isFBC) {
+		if(isFBC) {
+			Model model = r.getModel();
+			FBCReactionPlugin fbcRP = (FBCReactionPlugin)r.getPlugin(FBCConstants.shortLabel);
+			
+			fbcRP.setLowerFluxBound(Util.getImpossibleLowerBoundParameter(model));
+		} else {
+			KineticLaw kl = Util.getKineticLaw(r);
+			kl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.IMPOSSIBLE_LOWER_BOUND_VALUE);
+		}
+	}
+	
+	public static boolean isActiveObjective(Reaction r,boolean isFBC) {
+		if(isFBC) {
+			Model model = r.getModel();
+			FBCModelPlugin fbcModel = (FBCModelPlugin) model.getPlugin(FBCConstants.shortLabel);
+			if(fbcModel.isSetListOfObjectives() && fbcModel.isSetActiveObjective()) {
+				Objective obj = fbcModel.getActiveObjectiveInstance();
+				if(obj.isSetListOfFluxObjectives()) {
+					ListOf<FluxObjective> lOfFluxObj = obj.getListOfFluxObjectives();
+					for(FluxObjective fObj: lOfFluxObj) {
+						if(fObj.isSetReaction() && fObj.getReaction().equals(r.getId()) && fObj.isSetCoefficient() && fObj.getCoefficient() == Util.OBJECTIVE_COEFFICIENT_VALUE) {
+							return true;
+						}
+					}
+					return false;
+				} else {
+					return false;
+				}
+			} else {
+				return false;
+			}
+		} else {
+			KineticLaw klr = Util.getKineticLaw(r);
+			return klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)!=null && klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue() == Util.OBJECTIVE_COEFFICIENT_VALUE;
+		}
+	}
+	
+	public static void setDefaultBoundsToReaction(Model model, Reaction r,boolean isFBC) {
+		if(isFBC) {
+		// Doing it nicely
+			FBCReactionPlugin fbcRP = (FBCReactionPlugin)r.getPlugin(FBCConstants.shortLabel);
+			
+			fbcRP.setLowerFluxBound(Util.getDefaultLowerBoundParameter(model));
+			fbcRP.setUpperFluxBound(Util.getDefaultUpperBoundParameter(model));
+		} else {
+		// Traditional way before FBC
+			KineticLaw kl = Util.getKineticLaw(r);
+			kl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.DEFAULT_LOWER_BOUND_VALUE);
+			kl.getListOfLocalParameters().get(Util.LOCAL__UPPER_BOUND_PARAM).setValue(Util.DEFAULT_UPPER_BOUND_VALUE);
+		}
+	}
+	
+	public static void addReactionSettingDefaultBounds(Model model,Reaction r, boolean isFBC) {
+		Util.setDefaultBoundsToReaction(model,r,isFBC);
+		
+		if(!isFBC) {
+			// This parameter has no equivalence in SBML3 + FBC
+			KineticLaw kl = Util.getKineticLaw(r);
+			kl.getListOfLocalParameters().get(Util.LOCAL__FLUX_VALUE_PARAM).setValue(0.0);
+		}
+
+		model.addReaction(r);
+	}
+	
+	public static void setActiveObjectiveReaction(Model model, Reaction r, Reaction prevR, boolean isFBC) {
+		if(r!=null) {
+			Util.addReactionSettingDefaultBounds(model,r,isFBC);
+		} else if(prevR!=null) {
+			Util.addReactionSettingDefaultBounds(model,prevR,isFBC);
+		}
+		
+		// Now, disable the previous reaction's objective coefficient
+		if(prevR!=null) {
+			// Cambiar a cero el OBJECTIVE_COEFFICIENT de la reaccion original
+			if(isFBC) {
+				FBCModelPlugin fbcModel = (FBCModelPlugin) model.getPlugin(FBCConstants.shortLabel);
+				
+				if(fbcModel.isSetListOfObjectives()) {
+					ListOfObjectives lOfObj = fbcModel.getListOfObjectives();
+					for(Objective obj: lOfObj) {
+						ListOf<FluxObjective> lOfFluxObj = obj.getListOfFluxObjectives();
+						for(FluxObjective fObj: lOfFluxObj) {
+							if(fObj.isSetReaction() && fObj.getReaction().equals(prevR.getId())) {
+								fObj.setCoefficient(Util.DISABLED_OBJECTIVE_COEFFICIENT_VALUE);
+							}
+						}
+					}
+				}
+			} else {
+				KineticLaw klrPrev = Util.getKineticLaw(prevR);
+				if(klrPrev != null) {
+					klrPrev.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(Util.DISABLED_OBJECTIVE_COEFFICIENT_VALUE);
+				}
+			}
+		}
+
+		// and enable it in the current reaction
+		if(r!=null) {
+			// Mantener el OBJECTIVE_COEFFICIENT de la reaccion original en la nueva reac (deberia ser 1)
+			if(isFBC) {
+				FBCModelPlugin fbcModel = (FBCModelPlugin) model.getPlugin(FBCConstants.shortLabel);
+				 
+				Objective obj = fbcModel.createObjective();
+				FluxObjective fObj = obj.createFluxObjective();
+				
+				fObj.setReaction(r);
+				fObj.setCoefficient(Util.OBJECTIVE_COEFFICIENT_VALUE);
+				
+				obj.addFluxObjective(fObj);
+				fbcModel.setActiveObjective(obj);
+			} else {
+				KineticLaw klr = Util.getKineticLaw(r);
+				
+				if(klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM)==null || klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).getValue()==Util.DISABLED_OBJECTIVE_COEFFICIENT_VALUE) {
+					klr.getListOfLocalParameters().get(Util.LOCAL__OBJECTIVE_COEFFICIENT_PARAM).setValue(Util.OBJECTIVE_COEFFICIENT_VALUE); // A veces es cero
+				}
+			}
+		}
+	}
+	
+	private static Matcher mtFormula = Pattern.compile("FORMULA:\\s?([A-Za-z0-9]+)").matcher("");
+	
+	public static String getFormulaFromSpecies(Species s,boolean isFBC) {
+		String formula = null;
+		if(isFBC) {
+			FBCSpeciesPlugin fbcSpecies = (FBCSpeciesPlugin)s.getPlugin(FBCConstants.shortLabel);
+			if(fbcSpecies.isSetChemicalFormula()) {
+				formula = fbcSpecies.getChemicalFormula();
+			}
+		} else if(s.isSetNotes()) {
+			try {
+				mtFormula.reset(s.getNotesString());
+				if (mtFormula.find()) {
+					formula = mtFormula.group(1);
+				}
+			} catch (XMLStreamException e1) {
+				e1.printStackTrace();
+			}
+		}
+		
+		return formula;
+	}
+	
+	public static void setFormulaToSpecies(Species s,String formula,boolean isFBC) {
+		if(isFBC) {
+			FBCSpeciesPlugin fbcSpecies = (FBCSpeciesPlugin)s.getPlugin(FBCConstants.shortLabel);
+			fbcSpecies.setChemicalFormula(formula);
+		} else {
+			String prevNotes = "";
+			if(s.isSetNotes()) {
+				try {
+					mtFormula.reset(s.getNotesString());
+					if (mtFormula.find()) {
+						prevNotes = mtFormula.group(1);
+					}
+				} catch (XMLStreamException e1) {
+					e1.printStackTrace();
+				}
+			}
+			try {
+				s.setNotes(prevNotes+"FORMULA: "+formula+"\n");
+			} catch(XMLStreamException e1) {
+				e1.printStackTrace();
+			}
+		}
 	}
 }

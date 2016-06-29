@@ -221,7 +221,7 @@ public class WsMapper {
 
       if (!comp.validateCharge()) {
         // Buscar en la BD con el nuevo comp
-        NetCompound tmpComp = new NetCompound(comp.getSpecies());
+        NetCompound tmpComp = new NetCompound(comp.getSpecies(),comp.isFBC());
         tmpComp.update(wscomp);
         DbSearchEngine dbSearch = new DbSearchEngine(tmpComp);
         Status stDb = dbSearch.findChemIdCandidates();

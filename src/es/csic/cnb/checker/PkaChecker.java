@@ -292,7 +292,7 @@ public class PkaChecker {
           sp.setCharge(newCharge);
           sp.unsetNotes();
 
-          newComp = new NetCompound(sp);
+          newComp = new NetCompound(sp,comp.isFBC());
           newComp.update(wscomp);
         }
 

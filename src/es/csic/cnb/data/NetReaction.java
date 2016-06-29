@@ -152,7 +152,7 @@ public class NetReaction {
 		
 		// No kinetic law is needed in these cases
 	} else {
-		KineticLaw kl = reaction.isSetKineticLaw() ? reaction.getKineticLaw() : reaction.createKineticLaw();
+		KineticLaw kl = Util.getKineticLaw(reaction);
 		if(kl != null) {
 		    // Parametros de la reaccion
 		    for (LocalParameter lp : kl.getListOfLocalParameters()) {
