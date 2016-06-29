@@ -289,8 +289,8 @@ public class PkaChecker {
           sp.setParent(comp.getSpecies().getParent());
           sp.setId("tmp_" + String.valueOf((int)(Integer.MAX_VALUE * Math.random())) + "_" + comp.getCompartmentAbbrev()); // temporal
           sp.setName(wscomp.getName() + "_" + newFormula);
-          sp.setCharge(newCharge);
           sp.unsetNotes();
+          Util.setChargeToSpecies(sp,newCharge,comp.isFBC());
 
           newComp = new NetCompound(sp,comp.isFBC());
           newComp.update(wscomp);

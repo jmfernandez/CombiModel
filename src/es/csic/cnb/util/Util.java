@@ -839,10 +839,7 @@ public class Util {
 			String prevNotes = "";
 			if(s.isSetNotes()) {
 				try {
-					mtFormula.reset(s.getNotesString());
-					if (mtFormula.find()) {
-						prevNotes = mtFormula.group(1);
-					}
+					prevNotes = s.getNotesString();
 				} catch (XMLStreamException e1) {
 					e1.printStackTrace();
 				}
@@ -852,6 +849,59 @@ public class Util {
 			} catch(XMLStreamException e1) {
 				e1.printStackTrace();
 			}
+		}
+	}
+	
+	private static Matcher mtCharge = Pattern.compile("CHARGE:\\s?(\\d+)").matcher("");
+	
+	public static Integer getChargeFromSpecies(Species s,boolean isFBC) {
+		Integer charge = null;
+		
+		// Beginning in SBML Level 2 Version 2, the 'charge' attribute on Species is deprecated and in
+		// SBML Level 3 it does not exist in the core, but in FBC.
+		if(isFBC) {
+			FBCSpeciesPlugin fbcSpecies = (FBCSpeciesPlugin)s.getPlugin(FBCConstants.shortLabel);
+			if(fbcSpecies.isSetCharge()) {
+				charge = fbcSpecies.getCharge();
+			}
+		} else if(s.isSetCharge()) {
+			charge = s.getCharge();
+		} else if(s.isSetNotes()) {
+			try {
+				mtCharge.reset(s.getNotesString());
+				if (mtCharge.find()) {
+					charge = Integer.parseInt(mtCharge.group(1));
+				}
+			} catch (XMLStreamException e1) {
+				e1.printStackTrace();
+			}
+		}
+		
+		return charge;
+	}
+	
+	public static void setChargeToSpecies(Species s,int charge,boolean isFBC) {
+		// Beginning in SBML Level 2 Version 2, the 'charge' attribute on Species is deprecated and in
+		// SBML Level 3 it does not exist in the core, but in FBC.
+		if(isFBC) {
+			FBCSpeciesPlugin fbcSpecies = (FBCSpeciesPlugin)s.getPlugin(FBCConstants.shortLabel);
+			fbcSpecies.setCharge(charge);
+		} else if(s.getModel().getVersion() > 2 || (s.getModel().getVersion() == 2 && s.getModel().getLevel() >= 3)) {
+			String prevNotes = "";
+			if(s.isSetNotes()) {
+				try {
+					prevNotes = s.getNotesString();
+				} catch (XMLStreamException e1) {
+					e1.printStackTrace();
+				}
+			}
+			try {
+				s.setNotes(prevNotes+"CHARGE: "+charge+"\n");
+			} catch(XMLStreamException e1) {
+				e1.printStackTrace();
+			}
+		} else {
+			s.setCharge(charge);
 		}
 	}
 }

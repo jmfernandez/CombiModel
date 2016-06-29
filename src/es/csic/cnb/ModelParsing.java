@@ -1110,6 +1110,7 @@ public class ModelParsing {
     Map<String, String> tochangeList = new HashMap<String, String>();
 
     Model docModel = doc.getModel();
+    boolean isFBC = doc.isPackageEnabled(FBCConstants.shortLabel);
     for (Species sp : docModel.getListOfSpecies()) {
       if (pkaChangeList.containsKey(sp.getName())) {
         NetCompound newComp = pkaChangeList.get(sp.getName());
@@ -1123,7 +1124,7 @@ public class ModelParsing {
 
         sp.setId(newId);
         sp.setName(newComp.getSbmlName() + "_" + newComp.getSbmlFormula());
-        sp.setCharge(newComp.getCharge());
+        Util.setChargeToSpecies(sp,newComp.getCharge(),isFBC);
 
         tochangeList.put(oldId, newId);
 

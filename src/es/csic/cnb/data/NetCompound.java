@@ -29,7 +29,6 @@ public class NetCompound {
   private Matcher mtChebi = Pattern.compile("chebi:CHEBI%3A(\\d+)$").matcher("");
   private Matcher mtKegg = Pattern.compile("kegg\\.compound:(C\\d+)$").matcher("");
 
-  private Matcher mtCharge = Pattern.compile("CHARGE:\\s?(\\d+)").matcher("");
   private Matcher mtNameFormula = Pattern.compile("^(.+)_((?:[A-Z][a-z]?\\d*)+)$").matcher("");
   private Matcher mtSyn = Pattern.compile("SYN:\\s?(.+)<\\/p>").matcher("");
 
@@ -95,27 +94,16 @@ public class NetCompound {
     // Beginning in SBML Level 2 Version 2, the 'charge' attribute on Species is deprecated and in
     // SBML Level 3 it does not exist at all.
     // Its use strongly discouraged. Its presence is considered a misfeature in earlier definitions of SBML
-    this.charge = sp.getCharge();
+    Integer charge = Util.getChargeFromSpecies(sp,isFBC);
     //charge = (charge > Util.LIMIT_CHARGE) ? 0 : charge;
     this.validateCharge = (sp.getModel().getVersion() > 2 ||
-            (sp.getModel().getVersion() == 2 && sp.getModel().getLevel() >= 3)) ? false : true;
+            (sp.getModel().getVersion() == 2 && sp.getModel().getLevel() >= 3)) ? isFBC : true;
 
-    // Ver si existe carga como atributo en el compuesto
-    if (!sp.writeXMLAttributes().containsKey("charge")) {
-      this.validateCharge = false;
-    }
-
-    // Recuperar la carga que aparece en las notas del SBML
-    try {
-		mtCharge.reset(sp.getNotesString());
-	} catch (XMLStreamException e2) {
-		e2.printStackTrace();
-	}
-    if (mtCharge.find()) {
-      this.charge = Integer.parseInt(mtCharge.group(1));
+    if (charge!=null) {
+      this.charge = charge;
       this.validateCharge = true;
-
-      sp.setCharge(charge);
+      // 
+      // sp.setCharge(charge);
     }
 
 
