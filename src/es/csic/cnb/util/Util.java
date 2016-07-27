@@ -1,5 +1,6 @@
 package es.csic.cnb.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -697,6 +698,28 @@ public class Util {
 			KineticLaw kl = Util.getKineticLaw(r);
 			kl.getListOfLocalParameters().get(Util.LOCAL__LOWER_BOUND_PARAM).setValue(Util.IMPOSSIBLE_LOWER_BOUND_VALUE);
 		}
+	}
+	
+	public static List<Reaction> getFBCActiveObjectives(Model model) {
+		List<Reaction> l_r = new ArrayList<Reaction>();
+		
+		FBCModelPlugin fbcModel = (FBCModelPlugin) model.getPlugin(FBCConstants.shortLabel);
+		if(fbcModel.isSetListOfObjectives() && fbcModel.isSetActiveObjective()) {
+			Objective obj = fbcModel.getActiveObjectiveInstance();
+			if(obj.isSetListOfFluxObjectives()) {
+				ListOf<FluxObjective> lOfFluxObj = obj.getListOfFluxObjectives();
+				for(FluxObjective fObj: lOfFluxObj) {
+					if(fObj.isSetReaction() && fObj.isSetCoefficient() && fObj.getCoefficient() == Util.OBJECTIVE_COEFFICIENT_VALUE) {
+						Reaction r = model.getReaction(fObj.getReaction());
+						if(r!=null) {
+							l_r.add(r);
+						}
+					}
+				}
+			}
+		}
+		
+		return (l_r.size() > 0) ? l_r : null;
 	}
 	
 	public static boolean isActiveObjective(Reaction r,boolean isFBC) {

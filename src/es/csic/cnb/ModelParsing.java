@@ -540,47 +540,61 @@ public class ModelParsing {
     Reaction rccBiomassB = null;
     
     // Identificar las reac de biomasa
-    for (Reaction r : docModel.getListOfReactions()) {
-      // Llenar vectores de comp de intercambio a corregir
-      if (matcher.reset(r.getName()).find() || matcher.reset(r.getId()).find()) {
-        // Obtener reactantes y productos
-        ListOf<SpeciesReference> rsrList = r.getListOfReactants();
-        ListOf<SpeciesReference> psrList = r.getListOfProducts();
-        
-        
-	if (rsrList.size() == 1 && psrList.size() == 1) {
-		Species spP = psrList.getFirst().getSpeciesInstance();
+	List<Reaction> candidateReactions = null;
+	
+	if(isFBC) {
+		candidateReactions = Util.getFBCActiveObjectives(docModel);
+	}
+	
+	// Una salvaguarda
+	if(candidateReactions == null) {
+		candidateReactions = new ArrayList<Reaction>();
+		for(Reaction r: docModel.getListOfReactions()) {
+			if(matcher.reset(r.getName()).find() || matcher.reset(r.getId()).find()) {
+				// It will be considered later
+				candidateReactions.add(r);
+			}
+		}
+	}
+	
+	// Llenar vectores de comp de intercambio a corregir
+	for(Reaction r: candidateReactions) {
+		// Obtener reactantes y productos
+		ListOf<SpeciesReference> rsrList = r.getListOfReactants();
+		ListOf<SpeciesReference> psrList = r.getListOfProducts();
 		
-		// Reac e -> b o c -> b
-		if (spP.getBoundaryCondition()) {
-			rccBiomassB = r;
-			existRccBiomassB = true;
+		if (rsrList.size() == 1 && psrList.size() == 1) {
+			Species spP = psrList.getFirst().getSpeciesInstance();
 			
-			Util.setDefaultBoundsToReaction(docModel,r,isFBC);
-		} else if (Util.isExtracellular(spP.getCompartment())) {
-		// Reac c -> e
-			rccBiomassE = r;
-			existRccBiomassE = true;
-			
-			Util.setDefaultBoundsToReaction(docModel,r,isFBC);
+			// Reac e -> b o c -> b
+			if (spP.getBoundaryCondition()) {
+				rccBiomassB = r;
+				existRccBiomassB = true;
+				
+				Util.setDefaultBoundsToReaction(docModel,r,isFBC);
+			} else if (Util.isExtracellular(spP.getCompartment())) {
+			// Reac c -> e
+				rccBiomassE = r;
+				existRccBiomassE = true;
+				
+				Util.setDefaultBoundsToReaction(docModel,r,isFBC);
+			} else {
+			// Reac citoplasmatica
+				rccBiomassC = r;
+				rccBiomassCList.add(r);//
+				existRccBiomassC = true;
+			}
 		} else {
 		// Reac citoplasmatica
-			rccBiomassC = r;
-			rccBiomassCList.add(r);//
+			if(Util.isActiveObjective(r,isFBC)) {
+				rccBiomassC = r;
+			}
+			rccBiomassCList.add(r);
+			
+			//rccBiomassC = r;
 			existRccBiomassC = true;
 		}
-	} else {
-	// Reac citoplasmatica
-		if(Util.isActiveObjective(r,isFBC)) {
-			rccBiomassC = r;
-		}
-		rccBiomassCList.add(r);
-		
-		//rccBiomassC = r;
-		existRccBiomassC = true;
 	}
-      }
-    }
 
 //    // TRAZA
 //    System.out.println("CP: C-"+existCpdBiomassC+ " E-"+existCpdBiomassE+" B-"+existCpdBiomassB);
@@ -957,7 +971,8 @@ public class ModelParsing {
             caso1 = true;
           }
         }
-        else if (psrList.size() == 0) {
+        else if (psrList.size() == 0 && !isFBC) {
+		// Cuando está activa la extensión FBC, no arreglar
           caso2 = true;
         }
 
