@@ -1035,24 +1035,24 @@ public class ModelParsing {
     } // end reactions
 
     // Anadir las nuevas reacciones
-    for (Reaction r : newReacList) {
-      docModel.addReaction(r);
-    }
+		for (Reaction r : newReacList) {
+			docModel.addReaction(r);
+		}
 
-
-    // Casos en los que no existen reacciones, pero si los compuestos _e
-    // Lista de compuestos
-    List<String> cpEList = new ArrayList<String>();
-    for (Species sp : docModel.getListOfSpecies()) {
-      // Llenar vectores de comp de intercambio a corregir
-      if (sp.getId().endsWith("_e")) {
-        cpEList.add(sp.getId());
-      }
-    }
+		// Casos en los que no existen reacciones, pero si los compuestos _e
+		// Lista de compuestos
+		List<Species> cpEList = new ArrayList<Species>();
+		for (Species sp : docModel.getListOfSpecies()) {
+			// Llenar vectores de comp de intercambio a corregir
+			if (sp.getId().endsWith("_e")) {
+				cpEList.add(sp);
+			}
+		}
 
     // Contrastar los compuestos con _e con la lista de reacciones que contienen comp _e
-    for (String cpId : cpEList) {
+    for (Species cp : cpEList) {
       boolean found = false;
+      String cpId = cp.getId();
 
       // Recorrer reacciones
       rx:
@@ -1062,20 +1062,20 @@ public class ModelParsing {
           for (SpeciesReference sr : rsrList) {
             if (sr.getSpecies().equals(cpId)) {
               found = true;
-              continue rx;
+              break rx;
             }
           }
           ListOf<SpeciesReference> psrList = r.getListOfProducts();
           for (SpeciesReference sr : psrList) {
             if (sr.getSpecies().equals(cpId)) {
               found = true;
-              continue rx;
+              break rx;
             }
           }
         }
 
       if (!found) {
-        //System.out.println("NO EXISTE REACCION _e PARA "+cpId);
+        //LOGGER.log(Level.INFO,"NO EXISTE REACCION _e PARA "+cpId);
 
         Reaction rtemplate = null;
         // Tomar una reaccion modelo
@@ -1087,30 +1087,49 @@ public class ModelParsing {
           }
         }
 
-        // Crear reaccion c->e
-        Reaction r1 = Util.cloneReaction(rtemplate);
-        
-        r1.setId("rxn_new_" + cpId);
-        r1.setName("rxn_new_" + cpId);
-        
-        String crSp1 = cpId.replaceFirst("_\\w$", "_c");
-        r1.getReactant(0).setSpecies(crSp1);
-        
-        String cpSp1 = cpId.replaceFirst("_\\w$", "_e");
-        r1.getProduct(0).setSpecies(cpSp1);
-        docModel.addReaction(r1);
+	// Crear reaccion c->e
+	Reaction r1 = Util.cloneReaction(rtemplate);
 
-        // Crear reaccion e->b
-        Reaction r2 = Util.cloneReaction(rtemplate);
-        //Reaction r2 = rtemplate.clone();
-        
-        r2.setId("EX_new_" + cpId.replaceFirst("_e$", "_b"));
-        r2.setName("EX_new_" + cpId.replaceFirst("_e$", "_b"));
-        String crSp2 = cpId.replaceFirst("_\\w$", "_e");
-        r2.getReactant(0).setSpecies(crSp2);
-        String cpSp2 = cpId.replaceFirst("_\\w$", "_b");
-        r2.getProduct(0).setSpecies(cpSp2);
-        docModel.addReaction(r2);
+	r1.setId("rxn_new_" + cpId);
+	r1.setName("rxn_new_" + cpId);
+
+	String crSp1 = cpId.replaceFirst("_\\w$", "_c");
+	if(r1.getReactantCount() > 0) {
+		r1.getReactant(0).setSpecies(crSp1);
+	} else {
+		r1.createReactant(crSp1);
+	}
+
+	//String cpSp1 = cpId.replaceFirst("_\\w$", "_e");
+	if(r1.getProductCount() > 0) {
+		r1.getProduct(0).setSpecies(cpId);
+	} else {
+		SpeciesReference sr1 = r1.createProduct(cp);
+		sr1.setConstant(true);
+		sr1.setStoichiometry(1);
+	}
+	docModel.addReaction(r1);
+
+	// Crear reaccion e->b
+	Reaction r2 = Util.cloneReaction(rtemplate);
+	//Reaction r2 = rtemplate.clone();
+
+	r2.setId("EX_new_" + cpId.replaceFirst("_e$", "_b"));
+	r2.setName("EX_new_" + cpId.replaceFirst("_e$", "_b"));
+	if(r2.getReactantCount() > 0) {
+		r2.getReactant(0).setSpecies(cpId);
+	} else {
+		r2.createReactant(cp);
+	}
+	String cpSp2 = cpId.replaceFirst("_\\w$", "_b");
+	if(r2.getProductCount() > 0) {
+		r2.getProduct(0).setSpecies(cpSp2);
+	} else if(!isFBC) {
+		SpeciesReference sr2 = r2.createProduct(cpSp2);
+		sr2.setConstant(true);
+		sr2.setStoichiometry(1);
+	}
+	docModel.addReaction(r2);
       }
     }
   }

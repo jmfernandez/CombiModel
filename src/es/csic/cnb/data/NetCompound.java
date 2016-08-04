@@ -94,13 +94,13 @@ public class NetCompound {
     // Beginning in SBML Level 2 Version 2, the 'charge' attribute on Species is deprecated and in
     // SBML Level 3 it does not exist at all.
     // Its use strongly discouraged. Its presence is considered a misfeature in earlier definitions of SBML
-    Integer charge = Util.getChargeFromSpecies(sp,isFBC);
+    Integer speciesCharge = Util.getChargeFromSpecies(sp,isFBC);
     //charge = (charge > Util.LIMIT_CHARGE) ? 0 : charge;
     this.validateCharge = (sp.getModel().getVersion() > 2 ||
             (sp.getModel().getVersion() == 2 && sp.getModel().getLevel() >= 3)) ? isFBC : true;
 
-    if (charge!=null) {
-      this.charge = charge;
+    if (speciesCharge!=null) {
+      this.charge = speciesCharge;
       this.validateCharge = true;
       // 
       // sp.setCharge(charge);
@@ -114,9 +114,9 @@ public class NetCompound {
     boolean changeName = false;
 
     // Recuperar la formula que aparece en las notas del SBML
-    String sbmlFormula = Util.getFormulaFromSpecies(sp,isFBC);
-    if (sbmlFormula!=null) {
-      this.sbmlFormula = sbmlFormula;
+    String sbmlSpeciesFormula = Util.getFormulaFromSpecies(sp,isFBC);
+    if (sbmlSpeciesFormula!=null) {
+      this.sbmlFormula = sbmlSpeciesFormula;
 
       // Limpiar nombre
       this.sbmlName = cleanName(sp.getName()).trim();
@@ -148,7 +148,7 @@ public class NetCompound {
 
     // Cambiar nombre en el modelo para incluir formula (para que sea compatible con cobra)
     if (changeName) {
-      sp.setName(sp.getName().trim().concat("_").concat(sbmlFormula));
+      sp.setName(sp.getName().trim().concat("_").concat(this.sbmlFormula));
     }
 
 
@@ -204,7 +204,7 @@ public class NetCompound {
 
     // Corregir formula
     if (this.sbmlFormula != null) {
-      this.sbmlFormula = Util.getFormulaCorrected(sbmlFormula);
+      this.sbmlFormula = Util.getFormulaCorrected(this.sbmlFormula);
 
       // Si la formula es X o R
       if (this.sbmlFormula.matches("^[RX]$")) {
@@ -215,10 +215,10 @@ public class NetCompound {
       }
       else {
         // Guardar en la lista de xrefs la formula que aparece en el SBML corregida
-        this.addFm(Util.SOURCE_FORMULA_SBML, sbmlFormula, charge);
+        this.addFm(Util.SOURCE_FORMULA_SBML, this.sbmlFormula, charge);
 
         // Obtener forma neutra
-        this.neutralFormula = Util.getFormulaNeutra(sbmlFormula, charge);
+        this.neutralFormula = Util.getFormulaNeutra(this.sbmlFormula, charge);
         // Guardar en la lista de xrefs la formula neutra
         this.addFm(Util.SOURCE_FORMULA_NEUTRAL, neutralFormula, 0);
       }
